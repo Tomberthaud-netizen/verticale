@@ -1,6 +1,5 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
+/** @type {import('next').NextConfig} */
+const nextConfig = {
   // Build de production autonome (dossier .next/standalone) : nécessaire pour livrer un
   // dossier "dist" déjà compilé, sans avoir à réinstaller/recompiler sur le serveur.
   output: "standalone",

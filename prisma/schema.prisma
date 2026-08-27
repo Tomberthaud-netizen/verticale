@@ -1,0 +1,533 @@
+// binaryTargets : "native" pour le développement (Windows), "debian-openssl-3.0.x" pour un
+// serveur Linux type Ubuntu/Debian (ex. VPS Hostinger) où tourne le build de production.
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PhaseType {
+  DEMOLITION
+  RENOVATION
+  AMENAGEMENT
+  PERSONNALISEE
+}
+
+enum EvenementType {
+  LIVRAISON
+  REUNION
+  INSPECTION
+  AUTRE
+}
+
+enum AccesOnglet {
+  VUE_ENSEMBLE
+  CALENDRIER
+  DEVIS
+  ADMINISTRATION
+  FOURNISSEURS
+  FINANCE
+  DIRECTION
+  CATALOGUE
+  SOUS_TRAITANTS
+}
+
+enum StatutFacture {
+  EMISE
+  ANNULEE
+}
+
+enum StatutAffaire {
+  BROUILLON
+  ENVOYE
+  RELANCE
+  GAGNE
+  PERDU
+}
+
+enum TypeEvenementDevis {
+  NOTE
+  APPEL
+  EMAIL
+  RELANCE
+}
+
+enum ConfianceReference {
+  HAUTE
+  MOYENNE
+  BASSE
+}
+
+model Chantier {
+  id         String   @id @default(cuid())
+  nom        String
+  dateDebut  DateTime
+  equipe     String
+  adresse    String   @default("")
+  surfaceM2  Float    @default(0)
+  entreprise String   @default("VERTICALE")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Informations financières, toutes facultatives. prixChantier n'est pas stocké : il est
+  // dérivé de la somme des lignes financières manuelles et des devis liés (voir lib/chantier.ts).
+  prixAchat   Float?
+  prixRevente Float?
+
+  // Vente encaissée (achat/revente) : fait entrer prixRevente dans le CA de l'onglet Finance.
+  paye               Boolean   @default(false)
+  datePaiement       DateTime?
+  dateLimitePaiement DateTime?
+
+  // Sous-traitant affecté, distinct du champ "equipe" (texte libre, équipe interne).
+  sousTraitantId String?
+
+  phases            Phase[]
+  datesImportantes  DateImportante[]
+  retards           Retard[]
+  alertes           Alerte[]
+  photos            Photo[]
+  devis             Devis[]
+  lignesFinancieres LigneFinanciereChantier[]
+  factures          Facture[]
+  sousTraitant      SousTraitant?              @relation(fields: [sousTraitantId], references: [id], onDelete: SetNull)
+
+  @@index([sousTraitantId])
+}
+
+model Phase {
+  id                String    @id @default(cuid())
+  chantierId        String
+  type              PhaseType
+  nom               String?
+  nombreJoursOuvres Int
+  ordre             Int
+
+  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+
+  @@index([chantierId])
+}
+
+model DateImportante {
+  id               String        @id @default(cuid())
+  chantierId       String
+  nom              String
+  date             DateTime
+  type             EvenementType @default(AUTRE)
+  typePersonnalise String?
+
+  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+
+  @@index([chantierId])
+}
+
+model Retard {
+  id          String   @id @default(cuid())
+  chantierId  String
+  nombreJours Int
+  dateAjout   DateTime @default(now())
+  commentaire String?
+
+  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+
+  @@index([chantierId])
+}
+
+model Alerte {
+  id                  String @id @default(cuid())
+  chantierId          String
+  joursAvantLivraison Int
+
+  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+
+  @@index([chantierId])
+}
+
+model Photo {
+  id            String   @id @default(cuid())
+  chantierId    String
+  nomFichier    String
+  cheminFichier String
+  dateAjout     DateTime @default(now())
+
+  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+
+  @@index([chantierId])
+}
+
+model Devis {
+  id            String   @id @default(cuid())
+  numero        String   @unique
+  intitule      String
+  entreprise    String   @default("VERTICALE")
+  chantierId    String?
+  clientNom     String?
+  clientAdresse String?
+  clientEmail   String?
+  dateDevis     DateTime @default(now())
+  validiteJours Int?
+  tauxTVA       Float    @default(20)
+  remiseHT      Float    @default(0)
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Suivi commercial ("Affaire"), tous facultatifs.
+  statutAffaire       StatutAffaire @default(BROUILLON)
+  responsableId       String?
+  prochaineActionDate DateTime?
+  prochaineActionNote String?
+
+  // Validation : une fois figé, le contenu du devis (lignes, client, montants...) ne peut
+  // plus être modifié. Seuls le suivi d'affaire et le lien chantier restent éditables.
+  valide         Boolean   @default(false)
+  dateValidation DateTime?
+
+  // Encaissement : fait entrer le montant HT du devis validé dans le CA de l'onglet Finance.
+  paye               Boolean   @default(false)
+  datePaiement       DateTime?
+  dateLimitePaiement DateTime?
+
+  // Planning prévisionnel d'un devis validé non encore lié à un chantier : permet de le faire
+  // apparaître sur le Calendrier Global avant qu'un chantier en bonne et due forme existe.
+  dateDebutPrevisionnelle DateTime?
+  dureeJoursOuvres        Int?
+
+  // Coût de revient interne (jamais affiché au client), pour suivre la marge réelle.
+  coutMateriauxHT   Float?
+  coutHonorairesHT  Float?
+
+  chantier    Chantier?         @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  responsable Personne?         @relation(fields: [responsableId], references: [id], onDelete: SetNull)
+  lignes      LigneDevis[]
+  evenements  EvenementDevis[]
+  factures    Facture[]
+
+  @@index([chantierId])
+  @@index([responsableId])
+}
+
+model EvenementDevis {
+  id        String             @id @default(cuid())
+  devisId   String
+  type      TypeEvenementDevis
+  contenu   String
+  date      DateTime           @default(now())
+  createdAt DateTime           @default(now())
+
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+
+  @@index([devisId])
+}
+
+model LigneDevis {
+  id           String @id @default(cuid())
+  devisId      String
+  designation  String
+  unite        String?
+  quantite     Float
+  prixUnitaire Float
+  ordre        Int
+
+  devis Devis @relation(fields: [devisId], references: [id], onDelete: Cascade)
+
+  @@index([devisId])
+}
+
+/// Indice BT01 (bâtiment tous corps d'état, base 2010) par période mensuelle,
+/// utilisé pour actualiser les prix unitaires proposés depuis d'anciens devis.
+model IndiceBT {
+  id      String @id @default(cuid())
+  periode String @unique // format "YYYY-MM"
+  valeur  Float
+}
+
+/// Catalogue de départ des désignations de travaux courantes (sans prix), pour que
+/// l'auto-complétion propose des intitulés dès le premier devis. Les prix ne viennent
+/// jamais d'ici : uniquement de l'historique réel des devis (LigneDevis).
+model TypeDeTravaux {
+  id          String  @id @default(cuid())
+  designation String  @unique
+  lot         String?
+}
+
+/// Durée moyenne (en jours ouvrés par m²) pour chaque type de travaux, configurée depuis le
+/// Catalogue › Durée. Sert à proposer une durée de phase dans la fiche chantier (durée = jours/m² ×
+/// surface du chantier). `type` correspond au libellé de la phase (Démolition, Rénovation,
+/// Aménagement, ou un type personnalisé ajouté par l'utilisateur).
+model DureeTypeTravaux {
+  id         String   @id @default(cuid())
+  type       String   @unique
+  joursParM2 Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+/// Prix de référence extraits des devis de sous-traitants historiques (dossier Devis/), utilisés
+/// comme repli pour la suggestion de prix quand aucun vrai devis Verticale ne couvre encore la
+/// désignation saisie. `confiance` reflète la fiabilité de l'extraction automatique du PDF source.
+model PrixReference {
+  id            String             @id @default(cuid())
+  designation   String
+  lot           String?
+  prixUnitaire  Float
+  unite         String?
+  dateReference DateTime?
+  sourceFichier String
+  confiance     ConfianceReference
+
+  // Vérification ponctuelle du prix face à des références de marché trouvées en ligne.
+  // ecartPrixMarche est un pourcentage absolu d'écart ; null tant qu'aucune vérification n'a été faite.
+  prixMarcheReference Float?
+  ecartPrixMarche     Float?
+  sourceVerification  String?
+  verifiePrixLe       DateTime?
+
+  // true si la désignation extraite n'est pas un poste de travaux BTP exploitable (fragment
+  // administratif, texte de garde du devis, récapitulatif financier, etc.).
+  horsBtp       Boolean @default(false)
+  horsBtpRaison String?
+
+  produitFournisseur ProduitFournisseur?
+
+  @@index([designation])
+}
+
+/// Modèle d'e-mail utilisé pour l'envoi d'un devis validé (Administration › Email). Singleton :
+/// une seule ligne, id fixe "singleton". Placeholders acceptés dans objet/corps : {numero},
+/// {clientNom}, {intitule}, {entreprise}.
+model ParametresEmail {
+  id        String   @id @default("singleton")
+  objet     String   @default("Votre devis {numero} — {entreprise}")
+  corps     String   @default("Bonjour {clientNom},\n\nVeuillez trouver ci-joint votre devis {numero} concernant « {intitule} ».\n\nCordialement,")
+  updatedAt DateTime @updatedAt
+}
+
+/// Case financière manuelle du prix d'un chantier (à côté de celles générées
+/// automatiquement par les devis liés). La somme des deux forme le prix du chantier.
+model LigneFinanciereChantier {
+  id         String   @id @default(cuid())
+  chantierId String
+  libelle    String
+  montant    Float
+  createdAt  DateTime @default(now())
+
+  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+
+  @@index([chantierId])
+}
+
+model Personne {
+  id             String   @id @default(cuid())
+  nom            String
+  prenom         String
+  email          String   @unique
+  telephone      String?
+  motDePasseHash String
+  estAdmin       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  acces           AccesPersonne[]
+  devisResponsable Devis[]
+  connexions      Connexion[]
+}
+
+/// Coordonnées légales + logo d'une entreprise (VERTICALE ou CB2B), gérées depuis
+/// Administration › Informations société. `code` correspond aux valeurs de constants/entreprises.ts.
+model Entreprise {
+  code        String   @id
+  nom         String
+  tagline     String?
+  adresse     String?
+  codePostal  String?
+  ville       String?
+  telephone   String?
+  email       String?
+  siret       String?
+  tvaIntracom String?
+  logoPath    String?
+  updatedAt   DateTime @updatedAt
+}
+
+/// Une connexion (login) enregistrée pour l'onglet Administration › Connexions. `sessionId`
+/// correspond au "sid" inclus dans le jeton de session signé (lib/session.ts), ce qui permet à
+/// la déconnexion de retrouver puis clore la bonne ligne. `deconnecteLe` reste null tant que la
+/// session est active ; "connecté en ce moment" = deconnecteLe null ET jeton pas encore expiré.
+model Connexion {
+  id           String    @id @default(cuid())
+  personneId   String
+  sessionId    String    @unique
+  ip           String?
+  appareil     String?
+  connecteLe   DateTime  @default(now())
+  deconnecteLe DateTime?
+
+  personne Personne @relation(fields: [personneId], references: [id], onDelete: Cascade)
+
+  @@index([personneId])
+}
+
+/// Réglages globaux du site (ligne unique), gérés depuis Administration › Réglages.
+model ParametresSite {
+  id                String @id @default("singleton")
+  couleurPrincipale String @default("#1c1917")
+}
+
+/// Ordre et libellé personnalisé de chaque onglet dans les menus (Administration › Réglages).
+/// `libellePersonnalise` à null = utilise le libellé par défaut (constants/acces.ts).
+model ParametreOnglet {
+  onglet              AccesOnglet @id
+  libellePersonnalise String?
+  ordre               Int
+}
+
+model AccesPersonne {
+  id         String      @id @default(cuid())
+  personneId String
+  onglet     AccesOnglet
+  // null = accès valable pour les deux entreprises (ou onglet non cloisonné, ex. CALENDRIER/PERSONNES/CATALOGUE) ;
+  // "VERTICALE" ou "CB2B" = accès restreint à cette seule entreprise pour cet onglet.
+  entreprise String?
+
+  personne Personne @relation(fields: [personneId], references: [id], onDelete: Cascade)
+
+  @@unique([personneId, onglet])
+  @@index([personneId])
+}
+
+model Fournisseur {
+  id                String   @id @default(cuid())
+  nom               String
+  entreprise        String   @default("VERTICALE")
+  siret             String?
+  contactNom        String?
+  contactPrenom     String?
+  telephone         String?
+  email             String?
+  conditionPaiement String?
+  adresse           String?
+  codePostal        String?
+  ville             String?
+  pays              String?  @default("France")
+  siteWeb           String?
+  actif             Boolean  @default(true)
+  notes             String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  typesProduit FournisseurType[]
+  produits     ProduitFournisseur[]
+
+  @@index([entreprise])
+}
+
+/// Produit/prestation vendu par un fournisseur précis, saisi manuellement ou importé depuis son
+/// site web. Chaque ligne est synchronisée avec une ligne du Catalogue de prix (prixReferenceId).
+model ProduitFournisseur {
+  id            String   @id @default(cuid())
+  fournisseurId String
+  designation   String
+  lot           String?
+  unite         String?
+  prixUnitaire  Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  prixReferenceId String?        @unique
+  fournisseur     Fournisseur    @relation(fields: [fournisseurId], references: [id], onDelete: Cascade)
+  prixReference   PrixReference? @relation(fields: [prixReferenceId], references: [id], onDelete: SetNull)
+
+  @@index([fournisseurId])
+}
+
+/// Types de produits vendus par un fournisseur (un fournisseur peut en avoir plusieurs).
+model FournisseurType {
+  id            String @id @default(cuid())
+  fournisseurId String
+  type          String
+
+  fournisseur Fournisseur @relation(fields: [fournisseurId], references: [id], onDelete: Cascade)
+
+  @@unique([fournisseurId, type])
+  @@index([fournisseurId])
+}
+
+model Facture {
+  id            String        @id @default(cuid())
+  numero        String        @unique
+  entreprise    String        @default("VERTICALE")
+  devisId       String?
+  chantierId    String?
+  clientNom     String?
+  clientAdresse String?
+  montantHT     Float
+  coutRealisationHT Float?
+  tauxTVA       Float         @default(20)
+  dateFacture   DateTime      @default(now())
+  dateEcheance  DateTime?
+  statut        StatutFacture @default(EMISE)
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  devis     Devis?     @relation(fields: [devisId], references: [id], onDelete: SetNull)
+  chantier  Chantier?  @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  paiements Paiement[]
+
+  @@index([devisId])
+  @@index([chantierId])
+}
+
+model Paiement {
+  id           String   @id @default(cuid())
+  factureId    String
+  montant      Float
+  datePaiement DateTime @default(now())
+  moyen        String?
+  notes        String?
+  createdAt    DateTime @default(now())
+
+  facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+
+  @@index([factureId])
+}
+
+model SousTraitant {
+  id            String   @id @default(cuid())
+  nom           String
+  entreprise    String   @default("VERTICALE")
+  siret         String?
+  contactNom    String?
+  contactPrenom String?
+  telephone     String?
+  email         String?
+  adresse       String?
+  codePostal    String?
+  ville         String?
+  pays          String?  @default("France")
+  notes         String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  typesTravaux SousTraitantType[]
+  chantiers    Chantier[]
+
+  @@index([entreprise])
+}
+
+/// Types de travaux effectués par un sous-traitant (un sous-traitant peut en avoir plusieurs).
+model SousTraitantType {
+  id             String @id @default(cuid())
+  sousTraitantId String
+  type           String
+
+  sousTraitant SousTraitant @relation(fields: [sousTraitantId], references: [id], onDelete: Cascade)
+
+  @@unique([sousTraitantId, type])
+  @@index([sousTraitantId])
+}

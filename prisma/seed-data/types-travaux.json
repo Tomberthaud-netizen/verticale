@@ -1,0 +1,117 @@
+{
+  "items": [
+    { "designation": "Démolition cloison", "lot": "Démolition" },
+    { "designation": "Démolition carrelage sol", "lot": "Démolition" },
+    { "designation": "Démolition faïence murale", "lot": "Démolition" },
+    { "designation": "Dépose sanitaire", "lot": "Démolition" },
+    { "designation": "Évacuation gravats", "lot": "Démolition" },
+
+    { "designation": "Terrassement en pleine masse", "lot": "Terrassement" },
+    { "designation": "Terrassement en fouille", "lot": "Terrassement" },
+    { "designation": "Remblai compacté", "lot": "Terrassement" },
+    { "designation": "Évacuation des déblais", "lot": "Terrassement" },
+
+    { "designation": "Réseau d'assainissement", "lot": "VRD" },
+    { "designation": "Bordures et caniveaux", "lot": "VRD" },
+    { "designation": "Enrobé de voirie", "lot": "VRD" },
+    { "designation": "Réseau d'eaux pluviales", "lot": "VRD" },
+
+    { "designation": "Pieux forés", "lot": "Fondation spéciale" },
+    { "designation": "Micropieux", "lot": "Fondation spéciale" },
+    { "designation": "Longrines", "lot": "Fondation spéciale" },
+    { "designation": "Reprise en sous-œuvre", "lot": "Fondation spéciale" },
+
+    { "designation": "Fondations superficielles", "lot": "Gros œuvre" },
+    { "designation": "Dalle béton", "lot": "Gros œuvre" },
+    { "designation": "Voiles béton banché", "lot": "Gros œuvre" },
+    { "designation": "Poteaux béton", "lot": "Gros œuvre" },
+    { "designation": "Planchers béton", "lot": "Gros œuvre" },
+
+    { "designation": "Charpente traditionnelle bois", "lot": "Charpente bois" },
+    { "designation": "Charpente fermette", "lot": "Charpente bois" },
+    { "designation": "Ossature bois", "lot": "Charpente bois" },
+
+    { "designation": "Couverture tuiles", "lot": "Couverture" },
+    { "designation": "Couverture zinc", "lot": "Couverture" },
+    { "designation": "Écran sous-toiture", "lot": "Couverture" },
+    { "designation": "Zinguerie (gouttières, descentes)", "lot": "Couverture" },
+
+    { "designation": "Étanchéité toiture terrasse", "lot": "Étanchéité" },
+    { "designation": "Étanchéité liquide", "lot": "Étanchéité" },
+    { "designation": "Relevé d'étanchéité", "lot": "Étanchéité" },
+    { "designation": "Isolation sous étanchéité", "lot": "Étanchéité" },
+
+    { "designation": "Ravalement de façade", "lot": "Façade" },
+    { "designation": "Enduit de façade", "lot": "Façade" },
+    { "designation": "Isolation thermique par l'extérieur (ITE)", "lot": "Façade" },
+    { "designation": "Bardage façade", "lot": "Façade" },
+
+    { "designation": "Fenêtres PVC", "lot": "Menuiserie extérieure" },
+    { "designation": "Fenêtres aluminium", "lot": "Menuiserie extérieure" },
+    { "designation": "Porte d'entrée", "lot": "Menuiserie extérieure" },
+    { "designation": "Volets roulants", "lot": "Menuiserie extérieure" },
+    { "designation": "Garde-corps", "lot": "Menuiserie extérieure" },
+
+    { "designation": "Portes intérieures", "lot": "Menuiserie intérieure" },
+    { "designation": "Placards sur mesure", "lot": "Menuiserie intérieure" },
+    { "designation": "Plinthes bois", "lot": "Menuiserie intérieure" },
+    { "designation": "Escalier bois", "lot": "Menuiserie intérieure" },
+
+    { "designation": "Cloison placo", "lot": "Cloisons doublage" },
+    { "designation": "Doublage isolant", "lot": "Cloisons doublage" },
+    { "designation": "Faux plafond placo", "lot": "Cloisons doublage" },
+    { "designation": "Isolation phonique cloison", "lot": "Cloisons doublage" },
+
+    { "designation": "Chape traditionnelle", "lot": "Chape" },
+    { "designation": "Chape fluide anhydrite", "lot": "Chape" },
+    { "designation": "Ragréage sol", "lot": "Chape" },
+    { "designation": "Chape allégée", "lot": "Chape" },
+
+    { "designation": "Carrelage sol", "lot": "Carrelage faïence" },
+    { "designation": "Faïence murale salle de bain", "lot": "Carrelage faïence" },
+    { "designation": "Plinthes carrelage", "lot": "Carrelage faïence" },
+    { "designation": "Carrelage extérieur antidérapant", "lot": "Carrelage faïence" },
+
+    { "designation": "Pose parquet flottant", "lot": "Sols souples" },
+    { "designation": "Pose PVC/lino", "lot": "Sols souples" },
+    { "designation": "Pose moquette", "lot": "Sols souples" },
+    { "designation": "Sol souple acoustique", "lot": "Sols souples" },
+
+    { "designation": "Faux plafond suspendu", "lot": "Faux plafond" },
+    { "designation": "Faux plafond acoustique", "lot": "Faux plafond" },
+    { "designation": "Trappe de visite faux plafond", "lot": "Faux plafond" },
+
+    { "designation": "Peinture murs et plafonds", "lot": "Peinture" },
+    { "designation": "Peinture façade", "lot": "Peinture" },
+    { "designation": "Peinture boiserie", "lot": "Peinture" },
+    { "designation": "Enduit de lissage", "lot": "Peinture" },
+    { "designation": "Peinture sol", "lot": "Peinture" },
+
+    { "designation": "Alimentation eau froide/chaude", "lot": "Plomberie sanitaire chauffage" },
+    { "designation": "Évacuation eaux usées", "lot": "Plomberie sanitaire chauffage" },
+    { "designation": "Pose sanitaires (WC, lavabo, douche)", "lot": "Plomberie sanitaire chauffage" },
+    { "designation": "Chaudière et radiateurs", "lot": "Plomberie sanitaire chauffage" },
+    { "designation": "Chauffe-eau", "lot": "Plomberie sanitaire chauffage" },
+
+    { "designation": "Mise aux normes tableau électrique", "lot": "Élec" },
+    { "designation": "Câblage prises et interrupteurs", "lot": "Élec" },
+    { "designation": "Éclairage", "lot": "Élec" },
+    { "designation": "VMC", "lot": "Élec" },
+    { "designation": "Alarme et courants faibles", "lot": "Élec" },
+
+    { "designation": "Garde-corps métallique", "lot": "Métallerie serrurerie" },
+    { "designation": "Portail métallique", "lot": "Métallerie serrurerie" },
+    { "designation": "Escalier métallique", "lot": "Métallerie serrurerie" },
+    { "designation": "Serrurerie de sécurité", "lot": "Métallerie serrurerie" },
+
+    { "designation": "Fourniture et pose ascenseur", "lot": "Ascenseur" },
+    { "designation": "Maintenance ascenseur", "lot": "Ascenseur" },
+
+    { "designation": "Toiture végétalisée extensive", "lot": "Toiture végétalisée" },
+    { "designation": "Toiture végétalisée intensive", "lot": "Toiture végétalisée" },
+    { "designation": "Complexe drainant toiture végétale", "lot": "Toiture végétalisée" },
+
+    { "designation": "Pompage béton", "lot": "Pompage" },
+    { "designation": "Location pompe à béton", "lot": "Pompage" }
+  ]
+}

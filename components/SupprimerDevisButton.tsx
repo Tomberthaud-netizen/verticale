@@ -1,0 +1,40 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { supprimerDevis } from "@/app/actions";
+
+export default function SupprimerDevisButton({
+  devisId,
+  intituleDevis,
+}: {
+  devisId: string;
+  intituleDevis: string;
+}) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+
+  async function handleClick() {
+    const confirme = window.confirm(`Supprimer définitivement le devis « ${intituleDevis} » ?`);
+    if (!confirme) return;
+
+    setEnCours(true);
+    try {
+      await supprimerDevis(devisId);
+      router.push("/devis");
+    } finally {
+      setEnCours(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      disabled={enCours}
+      className="print:hidden shrink-0 rounded-md border border-red-200 text-red-600 text-sm font-medium px-3 py-1.5 hover:bg-red-50 transition-colors disabled:opacity-50"
+    >
+      {enCours ? "Suppression…" : "Supprimer le devis"}
+    </button>
+  );
+}

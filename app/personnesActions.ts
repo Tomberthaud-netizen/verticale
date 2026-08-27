@@ -1,0 +1,145 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import type { AccesOnglet } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
+import { hacherMotDePasse } from "@/lib/motDePasse";
+import { requireAdmin } from "@/lib/authContext";
+import { ACCES_ONGLETS, ONGLETS_SANS_ENTREPRISE } from "@/constants/acces";
+import { ENTREPRISES } from "@/constants/entreprises";
+
+export interface AccesInput {
+  onglet: string;
+  entreprise: string | null;
+}
+
+function validerAcces(acces: AccesInput[]): { onglet: AccesOnglet; entreprise: string | null }[] {
+  return acces
+    .filter((a): a is AccesInput & { onglet: AccesOnglet } => (ACCES_ONGLETS as string[]).includes(a.onglet))
+    .map((a) => ({
+      onglet: a.onglet,
+      // Onglet commun aux deux entreprises : l'entreprise n'a pas de sens, on force null.
+      entreprise: ONGLETS_SANS_ENTREPRISE.includes(a.onglet)
+        ? null
+        : (ENTREPRISES as readonly string[]).includes(a.entreprise ?? "")
+          ? a.entreprise
+          : null,
+    }));
+}
+
+async function compterAdmins(excludePersonneId?: string): Promise<number> {
+  return prisma.personne.count({
+    where: { estAdmin: true, ...(excludePersonneId ? { NOT: { id: excludePersonneId } } : {}) },
+  });
+}
+
+export interface CreerPersonneInput {
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone?: string;
+  motDePasse: string;
+  estAdmin: boolean;
+  acces: AccesInput[];
+}
+
+export async function creerPersonne(data: CreerPersonneInput) {
+  await requireAdmin();
+
+  const nom = data.nom.trim();
+  const prenom = data.prenom.trim();
+  const email = data.email.trim().toLowerCase();
+  if (!nom || !prenom || !email) {
+    throw new Error("Nom, prénom et e-mail sont obligatoires.");
+  }
+  if (data.motDePasse.length < 8) {
+    throw new Error("Le mot de passe doit contenir au moins 8 caractères.");
+  }
+
+  const existant = await prisma.personne.findUnique({ where: { email } });
+  if (existant) throw new Error("Un compte existe déjà avec cette adresse e-mail.");
+
+  const personne = await prisma.personne.create({
+    data: {
+      nom,
+      prenom,
+      email,
+      telephone: data.telephone?.trim() || null,
+      motDePasseHash: hacherMotDePasse(data.motDePasse),
+      estAdmin: data.estAdmin,
+      acces: { create: validerAcces(data.acces) },
+    },
+  });
+
+  revalidatePath("/administration");
+  return { id: personne.id };
+}
+
+export interface ModifierPersonneInput {
+  nom: string;
+  prenom: string;
+  email: string;
+  telephone?: string;
+  motDePasse?: string;
+  estAdmin: boolean;
+  acces: AccesInput[];
+}
+
+export async function modifierPersonne(personneId: string, data: ModifierPersonneInput) {
+  await requireAdmin();
+
+  const nom = data.nom.trim();
+  const prenom = data.prenom.trim();
+  const email = data.email.trim().toLowerCase();
+  if (!nom || !prenom || !email) {
+    throw new Error("Nom, prénom et e-mail sont obligatoires.");
+  }
+  if (data.motDePasse && data.motDePasse.length < 8) {
+    throw new Error("Le mot de passe doit contenir au moins 8 caractères.");
+  }
+
+  const autreAvecEmail = await prisma.personne.findFirst({ where: { email, NOT: { id: personneId } } });
+  if (autreAvecEmail) throw new Error("Un autre compte utilise déjà cette adresse e-mail.");
+
+  if (!data.estAdmin) {
+    const personneActuelle = await prisma.personne.findUnique({ where: { id: personneId }, select: { estAdmin: true } });
+    if (personneActuelle?.estAdmin && (await compterAdmins(personneId)) === 0) {
+      throw new Error("Impossible de retirer les droits administrateur du dernier administrateur.");
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.accesPersonne.deleteMany({ where: { personneId } });
+    await tx.personne.update({
+      where: { id: personneId },
+      data: {
+        nom,
+        prenom,
+        email,
+        telephone: data.telephone?.trim() || null,
+        estAdmin: data.estAdmin,
+        ...(data.motDePasse ? { motDePasseHash: hacherMotDePasse(data.motDePasse) } : {}),
+        acces: { create: validerAcces(data.acces) },
+      },
+    });
+  });
+
+  revalidatePath("/administration");
+}
+
+export async function supprimerPersonne(personneId: string) {
+  const moi = await requireAdmin();
+  if (moi.id === personneId) {
+    throw new Error("Vous ne pouvez pas supprimer votre propre compte.");
+  }
+  const total = await prisma.personne.count();
+  if (total <= 1) {
+    throw new Error("Impossible de supprimer le dernier compte.");
+  }
+  const cible = await prisma.personne.findUnique({ where: { id: personneId }, select: { estAdmin: true } });
+  if (cible?.estAdmin && (await compterAdmins(personneId)) === 0) {
+    throw new Error("Impossible de supprimer le dernier administrateur.");
+  }
+  await prisma.personne.delete({ where: { id: personneId } });
+  revalidatePath("/administration");
+}

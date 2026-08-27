@@ -13,7 +13,7 @@ import SupprimerAlerteButton from "@/components/SupprimerAlerteButton";
 import PhotoUploadForm from "@/components/PhotoUploadForm";
 import PhotoGallery from "@/components/PhotoGallery";
 import PrintButton from "@/components/PrintButton";
-import GoogleAgendaButton from "@/components/GoogleAgendaButton";
+import AgendaSyncButtons from "@/components/AgendaSyncButtons";
 import SupprimerChantierButton from "@/components/SupprimerChantierButton";
 import ChantierOnglets from "@/components/ChantierOnglets";
 import FinancesForm from "@/components/FinancesForm";
@@ -212,7 +212,7 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
             sousTraitants={sousTraitants}
           />
         </p>
-        <GoogleAgendaButton feedPath={`/api/ics/${calcule.id}`} label="Connecter à Google Agenda" />
+        <AgendaSyncButtons feedPath={`/api/ics/${calcule.id}`} label="ce chantier" />
       </div>
 
       <ChantierOnglets planning={planning} finances={finances} adresse={adresse} />

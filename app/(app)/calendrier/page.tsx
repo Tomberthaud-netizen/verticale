@@ -6,7 +6,7 @@ import { PHASE_COLORS, RETARD_COLOR, DEVIS_PROJETE_COLOR } from "@/constants/col
 import { requireAcces } from "@/lib/authContext";
 import CalendrierGlobal from "@/components/Gantt/CalendrierGlobal";
 import PrintButton from "@/components/PrintButton";
-import GoogleAgendaButton from "@/components/GoogleAgendaButton";
+import AgendaSyncButtons from "@/components/AgendaSyncButtons";
 
 export default async function CalendrierPage() {
   await requireAcces("CALENDRIER");
@@ -91,7 +91,7 @@ export default async function CalendrierPage() {
           </span>
         </div>
       </div>
-      <GoogleAgendaButton feedPath="/api/ics" label="Connecter tous les chantiers à Google Agenda" />
+      <AgendaSyncButtons feedPath="/api/ics" label="tous les chantiers" />
       <CalendrierGlobal echelle={echelle} chantiers={rows} />
     </div>
   );

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-export default function GoogleAgendaButton({
+export default function AgendaSyncButtons({
   feedPath,
   label,
 }: {
@@ -25,8 +25,12 @@ export default function GoogleAgendaButton({
     }
   }
 
-  function ouvrirParametresGoogleAgenda() {
+  function ouvrirGoogleAgenda() {
     window.open("https://calendar.google.com/calendar/r/settings/addbyurl", "_blank", "noopener,noreferrer");
+  }
+
+  function ouvrirOutlook() {
+    window.open("https://outlook.office.com/calendar/addcalendar", "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -48,16 +52,24 @@ export default function GoogleAgendaButton({
         </button>
         <button
           type="button"
-          onClick={ouvrirParametresGoogleAgenda}
+          onClick={ouvrirGoogleAgenda}
           className="text-xs text-muted underline underline-offset-2"
         >
           Ouvrir Google Agenda
         </button>
+        <button
+          type="button"
+          onClick={ouvrirOutlook}
+          className="text-xs text-muted underline underline-offset-2"
+        >
+          Ouvrir Outlook / Teams
+        </button>
       </div>
       <p className="text-xs text-muted max-w-lg">
-        Google Agenda n&apos;autorise pas l&apos;ajout automatique d&apos;un agenda externe en un clic : cliquez sur
-        « Copier le lien », puis « Ouvrir Google Agenda » et collez-le dans le champ « URL de l&apos;agenda », avant
-        de valider « Ajouter un agenda ». Les événements se mettront ensuite à jour automatiquement.
+        Ni Google Agenda ni Outlook n&apos;autorisent l&apos;ajout automatique d&apos;un agenda externe en un clic :
+        cliquez sur « Copier le lien », puis « Ouvrir Google Agenda » ou « Ouvrir Outlook / Teams » et collez-le
+        dans le champ prévu (« URL de l&apos;agenda » côté Google, « S&apos;abonner sur le web » côté Outlook), avant
+        de valider. Les événements se mettront ensuite à jour automatiquement.
       </p>
     </div>
   );

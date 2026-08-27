@@ -33,7 +33,7 @@ export default function EmailReglagesForm({ objetActuel, corpsActuel }: { objetA
         <code className="text-xs bg-surface border border-border rounded px-1 py-0.5">{"{clientNom}"}</code>{" "}
         <code className="text-xs bg-surface border border-border rounded px-1 py-0.5">{"{intitule}"}</code>{" "}
         <code className="text-xs bg-surface border border-border rounded px-1 py-0.5">{"{entreprise}"}</code>. Le mail
-        s&apos;ouvre dans votre messagerie habituelle, avec le PDF du devis téléchargé à joindre manuellement.
+        part automatiquement depuis le serveur, PDF du devis en pièce jointe.
       </p>
       <label className="flex flex-col gap-1 text-sm font-medium">
         Objet

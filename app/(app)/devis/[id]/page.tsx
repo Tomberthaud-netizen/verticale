@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getChantiersNoms, getDevis, getParametresEmail, getPersonnesNoms } from "@/lib/queries";
+import { getChantiersNoms, getDevis, getPersonnesNoms } from "@/lib/queries";
 import { calculerMontantTVA, calculerTotalHT, calculerTotalHTNet, calculerTotalLigne, calculerTotalTTC } from "@/lib/devis";
 import { formaterMontant } from "@/lib/finances";
 import SupprimerDevisButton from "@/components/SupprimerDevisButton";
@@ -25,10 +25,9 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
   const devis = await getDevis(id);
   if (!devis) notFound();
   await requireAcces("DEVIS", devis.entreprise as Entreprise);
-  const [chantiers, personnes, parametresEmail] = await Promise.all([
+  const [chantiers, personnes] = await Promise.all([
     getChantiersNoms(devis.entreprise as Entreprise),
     getPersonnesNoms(),
-    getParametresEmail(),
   ]);
 
   const sousTotalHT = calculerTotalHT(devis.lignes);
@@ -145,19 +144,7 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
         </section>
       )}
 
-      <DevisValidationActions
-        devisId={devis.id}
-        valide={devis.valide}
-        envoiMail={{
-          numero: devis.numero,
-          intitule: devis.intitule,
-          entreprise: devis.entreprise,
-          clientNom: devis.clientNom,
-          clientEmail: devis.clientEmail,
-          objetModele: parametresEmail.objet,
-          corpsModele: parametresEmail.corps,
-        }}
-      />
+      <DevisValidationActions devisId={devis.id} valide={devis.valide} envoiMail={{ clientEmail: devis.clientEmail }} />
     </div>
   );
 

@@ -5,8 +5,26 @@ import type { AccesOnglet } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hacherMotDePasse } from "@/lib/motDePasse";
 import { requireAdmin } from "@/lib/authContext";
+import { envoyerEmail } from "@/lib/mail";
 import { ACCES_ONGLETS, ONGLETS_SANS_ENTREPRISE } from "@/constants/acces";
 import { ENTREPRISES } from "@/constants/entreprises";
+
+/** Envoie ses identifiants à une personne nouvellement créée. N'échoue jamais : la création du
+ * compte ne doit pas être bloquée par un souci d'envoi d'e-mail (SMTP non configuré, etc.). */
+async function envoyerIdentifiants(email: string, motDePasse: string): Promise<boolean> {
+  const url = process.env.SITE_URL || "https://verticale.site";
+  try {
+    await envoyerEmail({
+      to: email,
+      subject: "Vos identifiants — Suivi de chantiers Verticale",
+      text: `Bonjour,\n\nVous trouverez ci-joint votre identifiant et votre mot de passe pour accéder au site.\n\nIdentifiant : ${email}\nMot de passe : ${motDePasse}\nURL : ${url}\n\nCordialement,`,
+    });
+    return true;
+  } catch (err) {
+    console.error("Échec de l'envoi des identifiants par e-mail :", err);
+    return false;
+  }
+}
 
 export interface AccesInput {
   onglet: string;
@@ -71,8 +89,10 @@ export async function creerPersonne(data: CreerPersonneInput) {
     },
   });
 
+  const emailEnvoye = await envoyerIdentifiants(email, data.motDePasse);
+
   revalidatePath("/administration");
-  return { id: personne.id };
+  return { id: personne.id, emailEnvoye };
 }
 
 export interface ModifierPersonneInput {

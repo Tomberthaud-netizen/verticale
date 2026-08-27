@@ -15,6 +15,8 @@ import { genererPdfDevisBuffer } from "@/lib/pdfDevis";
 import { determinerCheminBureau, determinerDossierEntreprise, determinerSousDossierDevis, nettoyerNomDossier } from "@/lib/exportDevis";
 import { requireAcces } from "@/lib/authContext";
 import { getEntrepriseActive } from "@/lib/entrepriseActive";
+import { envoyerEmail } from "@/lib/mail";
+import { remplacerPlaceholders } from "@/lib/emailTemplate";
 
 /** Entreprise propriétaire d'un chantier — pour vérifier l'accès à une ressource précise. */
 async function entrepriseDuChantier(chantierId: string): Promise<Entreprise> {
@@ -500,6 +502,52 @@ export async function validerDevis(devisId: string) {
   revalidatePath(`/devis/${devisId}`);
   revalidatePath("/devis");
   revalidatePath("/finance");
+}
+
+/** Envoie le devis validé par e-mail au client, PDF en pièce jointe, et journalise l'envoi dans la chronologie. */
+export async function envoyerDevisParEmail(devisId: string) {
+  const devis = await prisma.devis.findUnique({
+    where: { id: devisId },
+    include: {
+      lignes: { orderBy: { ordre: "asc" } },
+      chantier: { select: { nom: true } },
+      responsable: { select: { nom: true, prenom: true, telephone: true } },
+    },
+  });
+  if (!devis) throw new Error("Devis introuvable.");
+  await requireAcces("DEVIS", devis.entreprise as Entreprise);
+  if (!devis.clientEmail) throw new Error("Renseignez l'e-mail du client dans la fiche devis pour activer l'envoi.");
+
+  const parametresEmail = await prisma.parametresEmail.findUnique({ where: { id: "singleton" } });
+  const valeurs = {
+    numero: devis.numero,
+    intitule: devis.intitule,
+    entreprise: devis.entreprise,
+    clientNom: devis.clientNom || "Madame, Monsieur",
+  };
+  const objet = remplacerPlaceholders(
+    parametresEmail?.objet ?? "Votre devis {numero} — {entreprise}",
+    valeurs
+  );
+  const corps = remplacerPlaceholders(
+    parametresEmail?.corps ??
+      "Bonjour {clientNom},\n\nVeuillez trouver ci-joint votre devis {numero} concernant « {intitule} ».\n\nCordialement,",
+    valeurs
+  );
+
+  const buffer = await genererPdfDevisBuffer(devis);
+  await envoyerEmail({
+    to: devis.clientEmail,
+    subject: objet,
+    text: corps,
+    attachments: [{ filename: `${devis.numero}.pdf`, content: buffer, contentType: "application/pdf" }],
+  });
+
+  await prisma.evenementDevis.create({
+    data: { devisId, type: "EMAIL", contenu: `Devis envoyé par e-mail à ${devis.clientEmail}.` },
+  });
+
+  revalidatePath(`/devis/${devisId}`);
 }
 
 /**

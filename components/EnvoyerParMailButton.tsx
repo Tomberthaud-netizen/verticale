@@ -1,52 +1,33 @@
 "use client";
 
-function remplacerPlaceholders(texte: string, valeurs: Record<string, string>): string {
-  return texte.replace(/\{(\w+)\}/g, (correspondance, cle: string) => valeurs[cle] ?? correspondance);
-}
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { envoyerDevisParEmail } from "@/app/actions";
 
 export default function EnvoyerParMailButton({
   devisId,
-  numero,
-  intitule,
-  entreprise,
-  clientNom,
   clientEmail,
-  objetModele,
-  corpsModele,
 }: {
   devisId: string;
-  numero: string;
-  intitule: string;
-  entreprise: string;
-  clientNom: string | null;
   clientEmail: string | null;
-  objetModele: string;
-  corpsModele: string;
 }) {
-  const valeurs = {
-    numero,
-    intitule,
-    entreprise,
-    clientNom: clientNom || "Madame, Monsieur",
-  };
+  const router = useRouter();
+  const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [envoye, setEnvoye] = useState(false);
 
-  function envoyer() {
-    if (!clientEmail) return;
-
-    // Télécharge le PDF du devis à joindre manuellement (mailto: ne permet pas les pièces jointes).
-    const lien = document.createElement("a");
-    lien.href = `/api/devis/${devisId}/pdf`;
-    lien.download = `${numero}.pdf`;
-    document.body.appendChild(lien);
-    lien.click();
-    document.body.removeChild(lien);
-
-    const objet = remplacerPlaceholders(objetModele, valeurs);
-    const corps = remplacerPlaceholders(corpsModele, valeurs);
-    const mailto = `mailto:${encodeURIComponent(clientEmail)}?subject=${encodeURIComponent(objet)}&body=${encodeURIComponent(corps)}`;
-    window.setTimeout(() => {
-      window.location.href = mailto;
-    }, 300);
+  async function envoyer() {
+    setErreur(null);
+    setEnCours(true);
+    try {
+      await envoyerDevisParEmail(devisId);
+      setEnvoye(true);
+      router.refresh();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
+    } finally {
+      setEnCours(false);
+    }
   }
 
   return (
@@ -54,15 +35,17 @@ export default function EnvoyerParMailButton({
       <button
         type="button"
         onClick={envoyer}
-        disabled={!clientEmail}
+        disabled={!clientEmail || enCours}
         title={!clientEmail ? "Renseignez l'email du client dans la fiche devis pour activer l'envoi." : undefined}
         className="rounded-md bg-accent text-background text-sm font-medium px-5 py-2.5 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
       >
-        Envoyer par mail
+        {enCours ? "Envoi…" : "Envoyer par mail"}
       </button>
       {!clientEmail && (
         <p className="text-xs text-muted">Renseignez l&apos;email du client pour activer l&apos;envoi.</p>
       )}
+      {erreur && <p className="text-xs text-red-600">{erreur}</p>}
+      {envoye && !erreur && <p className="text-xs text-emerald-600">Devis envoyé par e-mail.</p>}
     </div>
   );
 }

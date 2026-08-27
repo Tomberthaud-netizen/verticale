@@ -69,7 +69,20 @@ export default function PersonneForm({ personneExistante }: { personneExistante?
           setEnCours(false);
           return;
         }
-        await creerPersonne({ nom, prenom, email, telephone: telephone || undefined, motDePasse, estAdmin, acces: accesPayload });
+        const { emailEnvoye } = await creerPersonne({
+          nom,
+          prenom,
+          email,
+          telephone: telephone || undefined,
+          motDePasse,
+          estAdmin,
+          acces: accesPayload,
+        });
+        if (!emailEnvoye) {
+          window.alert(
+            "Le compte a été créé, mais l'e-mail avec les identifiants n'a pas pu être envoyé. Communiquez-les manuellement à la personne."
+          );
+        }
       }
       router.push("/administration");
     } catch (err) {

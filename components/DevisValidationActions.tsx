@@ -6,13 +6,7 @@ import { creerDevisTS, reediterDevis, validerDevis } from "@/app/actions";
 import EnvoyerParMailButton from "@/components/EnvoyerParMailButton";
 
 export interface EnvoiMailInfos {
-  numero: string;
-  intitule: string;
-  entreprise: string;
-  clientNom: string | null;
   clientEmail: string | null;
-  objetModele: string;
-  corpsModele: string;
 }
 
 export default function DevisValidationActions({
@@ -93,18 +87,7 @@ export default function DevisValidationActions({
           >
             Réédition
           </button>
-          {envoiMail && (
-            <EnvoyerParMailButton
-              devisId={devisId}
-              numero={envoiMail.numero}
-              intitule={envoiMail.intitule}
-              entreprise={envoiMail.entreprise}
-              clientNom={envoiMail.clientNom}
-              clientEmail={envoiMail.clientEmail}
-              objetModele={envoiMail.objetModele}
-              corpsModele={envoiMail.corpsModele}
-            />
-          )}
+          {envoiMail && <EnvoyerParMailButton devisId={devisId} clientEmail={envoiMail.clientEmail} />}
         </div>
       ) : (
         <button

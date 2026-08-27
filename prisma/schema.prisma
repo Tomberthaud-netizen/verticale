@@ -1,12 +1,12 @@
-// binaryTargets : "native" pour le développement (Windows), "debian-openssl-3.0.x" pour un
-// serveur Linux type Ubuntu/Debian (ex. VPS Hostinger) où tourne le build de production.
 generator client {
-  provider      = "prisma-client-js"
-  binaryTargets = ["native", "debian-openssl-3.0.x"]
+  provider = "prisma-client-js"
 }
 
+// MySQL : base gérée par Hostinger, seul moyen d'obtenir un stockage réellement persistant sur
+// ce plan d'hébergement Node.js (le dossier de build est recréé à chaque déploiement, donc un
+// fichier SQLite local n'y survit jamais — voir DEPLOIEMENT.md).
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
@@ -130,7 +130,7 @@ model Retard {
   chantierId  String
   nombreJours Int
   dateAjout   DateTime @default(now())
-  commentaire String?
+  commentaire String?  @db.Text
 
   chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
 
@@ -166,13 +166,13 @@ model Devis {
   entreprise    String   @default("VERTICALE")
   chantierId    String?
   clientNom     String?
-  clientAdresse String?
+  clientAdresse String?  @db.Text
   clientEmail   String?
   dateDevis     DateTime @default(now())
   validiteJours Int?
   tauxTVA       Float    @default(20)
   remiseHT      Float    @default(0)
-  notes         String?
+  notes         String?  @db.Text
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
@@ -180,7 +180,7 @@ model Devis {
   statutAffaire       StatutAffaire @default(BROUILLON)
   responsableId       String?
   prochaineActionDate DateTime?
-  prochaineActionNote String?
+  prochaineActionNote String?   @db.Text
 
   // Validation : une fois figé, le contenu du devis (lignes, client, montants...) ne peut
   // plus être modifié. Seuls le suivi d'affaire et le lien chantier restent éditables.
@@ -215,7 +215,7 @@ model EvenementDevis {
   id        String             @id @default(cuid())
   devisId   String
   type      TypeEvenementDevis
-  contenu   String
+  contenu   String   @db.Text
   date      DateTime           @default(now())
   createdAt DateTime           @default(now())
 
@@ -290,7 +290,7 @@ model PrixReference {
   // true si la désignation extraite n'est pas un poste de travaux BTP exploitable (fragment
   // administratif, texte de garde du devis, récapitulatif financier, etc.).
   horsBtp       Boolean @default(false)
-  horsBtpRaison String?
+  horsBtpRaison String? @db.Text
 
   produitFournisseur ProduitFournisseur?
 
@@ -303,7 +303,7 @@ model PrixReference {
 model ParametresEmail {
   id        String   @id @default("singleton")
   objet     String   @default("Votre devis {numero} — {entreprise}")
-  corps     String   @default("Bonjour {clientNom},\n\nVeuillez trouver ci-joint votre devis {numero} concernant « {intitule} ».\n\nCordialement,")
+  corps     String   @db.Text
   updatedAt DateTime @updatedAt
 }
 
@@ -416,7 +416,7 @@ model Fournisseur {
   pays              String?  @default("France")
   siteWeb           String?
   actif             Boolean  @default(true)
-  notes             String?
+  notes             String?  @db.Text
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -464,14 +464,14 @@ model Facture {
   devisId       String?
   chantierId    String?
   clientNom     String?
-  clientAdresse String?
+  clientAdresse String?       @db.Text
   montantHT     Float
   coutRealisationHT Float?
   tauxTVA       Float         @default(20)
   dateFacture   DateTime      @default(now())
   dateEcheance  DateTime?
   statut        StatutFacture @default(EMISE)
-  notes         String?
+  notes         String?       @db.Text
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
@@ -489,7 +489,7 @@ model Paiement {
   montant      Float
   datePaiement DateTime @default(now())
   moyen        String?
-  notes        String?
+  notes        String?  @db.Text
   createdAt    DateTime @default(now())
 
   facture Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
@@ -510,7 +510,7 @@ model SousTraitant {
   codePostal    String?
   ville         String?
   pays          String?  @default("France")
-  notes         String?
+  notes         String?  @db.Text
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 

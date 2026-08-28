@@ -12,12 +12,16 @@ import {
 import { calculerBeneficePrevisionnel, calculerCoutReel, calculerPrixChantier } from "./finances";
 import { calculerMontantTVA, calculerTotalHT, calculerTotalHTNet, calculerTotalTTC } from "./devis";
 
+/** Le contenu binaire (donnees) n'est jamais chargé pour une liste/fiche chantier : il est servi
+ * à la demande par /api/photos/[id], une seule photo à la fois. */
+export type PhotoResume = Omit<Photo, "donnees" | "typeMime">;
+
 export type ChantierAvecRelations = Chantier & {
   phases: Phase[];
   datesImportantes: DateImportante[];
   retards: Retard[];
   alertes: Alerte[];
-  photos: Photo[];
+  photos: PhotoResume[];
   devis: (Devis & { lignes: LigneDevis[] })[];
   lignesFinancieres: LigneFinanciereChantier[];
 };
@@ -45,7 +49,7 @@ export interface ChantierCalcule {
   retards: RetardCalcule[];
   datesImportantes: DateImportante[];
   alertes: AlerteCalculee[];
-  photos: Photo[];
+  photos: PhotoResume[];
   prixAchat: number | null;
   casesFinancieres: CaseFinanciereChantier[];
   prixChantier: number | null;

@@ -1,10 +1,10 @@
 import Image from "next/image";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import type { Photo } from "@prisma/client";
 import { supprimerPhoto } from "@/app/actions";
+import type { PhotoResume } from "@/lib/chantier";
 
-export default function PhotoGallery({ chantierId, photos }: { chantierId: string; photos: Photo[] }) {
+export default function PhotoGallery({ chantierId, photos }: { chantierId: string; photos: PhotoResume[] }) {
   if (photos.length === 0) {
     return <p className="text-sm text-muted">Aucune photo pour ce chantier.</p>;
   }
@@ -15,11 +15,12 @@ export default function PhotoGallery({ chantierId, photos }: { chantierId: strin
         <div key={photo.id} className="border border-border rounded-md overflow-hidden bg-surface">
           <div className="relative aspect-square bg-background">
             <Image
-              src={photo.cheminFichier}
+              src={`/api/photos/${photo.id}`}
               alt={photo.nomFichier}
               fill
               sizes="200px"
               className="object-cover"
+              unoptimized
             />
           </div>
           <div className="px-2 py-1.5 flex items-center justify-between gap-2">

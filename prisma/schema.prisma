@@ -147,12 +147,16 @@ model Alerte {
   @@index([chantierId])
 }
 
+/// Le contenu de l'image est stocké directement en base (donnees), pas sur le disque du
+/// serveur : l'hébergement Node.js recrée un dossier neuf à chaque déploiement (cf. DEPLOIEMENT.md
+/// pour DATABASE_URL), donc un fichier écrit dans public/uploads y disparaîtrait au déploiement suivant.
 model Photo {
-  id            String   @id @default(cuid())
-  chantierId    String
-  nomFichier    String
-  cheminFichier String
-  dateAjout     DateTime @default(now())
+  id         String   @id @default(cuid())
+  chantierId String
+  nomFichier String
+  typeMime   String
+  donnees    Bytes    @db.LongBlob
+  dateAjout  DateTime @default(now())
 
   chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
 

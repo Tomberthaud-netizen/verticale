@@ -1,8 +1,7 @@
 "use server";
 
-import { mkdir, rm, unlink, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
 import type { EvenementType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
@@ -133,14 +132,6 @@ export async function affecterSousTraitant(chantierId: string, sousTraitantId: s
 export async function supprimerChantier(chantierId: string) {
   await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
   await prisma.chantier.delete({ where: { id: chantierId } });
-  try {
-    await rm(path.join(process.cwd(), "public", "uploads", chantierId), {
-      recursive: true,
-      force: true,
-    });
-  } catch {
-    // dossier déjà absent, ce n'est pas bloquant
-  }
   revalidatePath("/");
   revalidatePath("/calendrier");
 }
@@ -244,12 +235,7 @@ export async function supprimerAlerte(chantierId: string, alerteId: string) {
   revalidatePath("/");
 }
 
-const EXTENSIONS_AUTORISEES: Record<string, string> = {
-  "image/jpeg": ".jpg",
-  "image/png": ".png",
-  "image/webp": ".webp",
-  "image/gif": ".gif",
-};
+const TYPES_MIME_AUTORISES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 export async function ajouterPhoto(chantierId: string, formData: FormData) {
   await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
@@ -257,22 +243,18 @@ export async function ajouterPhoto(chantierId: string, formData: FormData) {
   if (!(fichier instanceof File) || fichier.size === 0) {
     throw new Error("Sélectionnez une photo à ajouter.");
   }
-  const extension = EXTENSIONS_AUTORISEES[fichier.type];
-  if (!extension) {
+  if (!TYPES_MIME_AUTORISES.has(fichier.type)) {
     throw new Error("Format d'image non pris en charge (JPEG, PNG, WEBP ou GIF).");
   }
 
-  const dossier = path.join(process.cwd(), "public", "uploads", chantierId);
-  await mkdir(dossier, { recursive: true });
-  const nomFichier = `${randomUUID()}${extension}`;
   const octets = Buffer.from(await fichier.arrayBuffer());
-  await writeFile(path.join(dossier, nomFichier), octets);
 
   await prisma.photo.create({
     data: {
       chantierId,
       nomFichier: fichier.name,
-      cheminFichier: `/uploads/${chantierId}/${nomFichier}`,
+      typeMime: fichier.type,
+      donnees: octets,
     },
   });
 
@@ -281,14 +263,7 @@ export async function ajouterPhoto(chantierId: string, formData: FormData) {
 
 export async function supprimerPhoto(chantierId: string, photoId: string) {
   await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
-  const photo = await prisma.photo.findUnique({ where: { id: photoId } });
-  if (!photo) return;
-  await prisma.photo.delete({ where: { id: photoId } });
-  try {
-    await unlink(path.join(process.cwd(), "public", photo.cheminFichier));
-  } catch {
-    // le fichier a peut-être déjà été supprimé, ce n'est pas bloquant
-  }
+  await prisma.photo.deleteMany({ where: { id: photoId, chantierId } });
   revalidatePath(`/chantiers/${chantierId}`);
 }
 

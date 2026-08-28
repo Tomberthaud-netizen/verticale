@@ -28,7 +28,7 @@ export default function EntrepriseSwitcher({
   }
 
   return (
-    <div className="flex items-center gap-2 shrink-0">
+    <div className="flex items-center gap-1 sm:gap-2 min-w-0">
       <button
         type="button"
         onClick={() => choisir("VERTICALE")}
@@ -43,11 +43,11 @@ export default function EntrepriseSwitcher({
           alt="Verticale"
           width={320}
           height={196}
-          className="h-16 sm:h-24 w-auto object-contain"
+          className="h-10 sm:h-16 md:h-24 w-auto object-contain"
           priority
         />
       </button>
-      <span className="text-border text-xl font-light select-none">/</span>
+      <span className="text-border text-base sm:text-xl font-light select-none">/</span>
       {logos.CB2B ? (
         <button
           type="button"
@@ -66,7 +66,7 @@ export default function EntrepriseSwitcher({
           onClick={() => choisir("CB2B")}
           disabled={enCours}
           title="Afficher CB2B"
-          className={`rounded-md px-2 py-1 font-bold tracking-wide text-xl transition-opacity disabled:cursor-wait ${
+          className={`rounded-md px-1.5 sm:px-2 py-1 font-bold tracking-wide text-base sm:text-xl transition-opacity disabled:cursor-wait ${
             actif === "CB2B" ? "opacity-100" : "opacity-30 hover:opacity-70"
           }`}
           style={{ color: "#1e3a5f" }}

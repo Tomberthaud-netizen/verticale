@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
+import { MobileMenuProvider } from "@/components/MobileMenuProvider";
 import { aAcces, getPersonneConnectee } from "@/lib/authContext";
 import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import { getSidebarReduit } from "@/lib/sidebarState";
@@ -24,24 +25,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   } as Record<Entreprise, string | null>;
 
   return (
-    <div className="flex-1 flex flex-col min-w-0">
-      <Header
-        personne={personne}
-        entrepriseActive={entrepriseActive}
-        ongletsAutorises={ongletsAutorises}
-        libelles={libelles}
-        ordres={ordres}
-        logos={logos}
-      />
-      <div className="flex-1 flex min-w-0">
-        <Sidebar
+    <MobileMenuProvider>
+      <div className="flex-1 flex flex-col min-w-0">
+        <Header
+          personne={personne}
+          entrepriseActive={entrepriseActive}
           ongletsAutorises={ongletsAutorises}
           libelles={libelles}
           ordres={ordres}
-          reduitInitial={sidebarReduit}
+          logos={logos}
         />
-        <main className="flex-1 min-w-0 px-6 py-8 print:max-w-none print:px-0 print:py-0">{children}</main>
+        <div className="flex-1 flex min-w-0">
+          <Sidebar
+            ongletsAutorises={ongletsAutorises}
+            libelles={libelles}
+            ordres={ordres}
+            reduitInitial={sidebarReduit}
+          />
+          <main className="flex-1 min-w-0 px-4 py-6 sm:px-6 sm:py-8 print:max-w-none print:px-0 print:py-0">
+            {children}
+          </main>
+        </div>
       </div>
-    </div>
+    </MobileMenuProvider>
   );
 }

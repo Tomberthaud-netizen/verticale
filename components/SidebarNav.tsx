@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import type { AccesOnglet } from "@prisma/client";
+import { useMobileMenu } from "./MobileMenuProvider";
 
 const ICONS: Record<AccesOnglet, ReactNode> = {
   VUE_ENSEMBLE: (
@@ -116,6 +117,7 @@ export default function SidebarNav({
 }) {
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href));
+  const { fermer } = useMobileMenu();
 
   return (
     <nav className="flex-1 px-2 py-4 flex flex-col gap-5 overflow-y-auto overflow-x-hidden">
@@ -126,11 +128,13 @@ export default function SidebarNav({
         if (items.length === 0) return null;
         return (
           <div key={section.titre} className="flex flex-col gap-0.5">
-            {!reduit && (
-              <p className="px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-[#6b6f78] whitespace-nowrap">
-                {section.titre}
-              </p>
-            )}
+            <p
+              className={`px-3 mb-1 text-[11px] font-semibold uppercase tracking-wider text-[#6b6f78] whitespace-nowrap ${
+                reduit ? "md:hidden" : ""
+              }`}
+            >
+              {section.titre}
+            </p>
             {items.map((item) => {
               const active = isActive(item.href);
               const label = libelles[item.onglet];
@@ -138,9 +142,10 @@ export default function SidebarNav({
                 <Link
                   key={item.href}
                   href={item.href}
+                  onClick={fermer}
                   title={reduit ? label : undefined}
-                  className={`flex items-center gap-2.5 py-2 rounded-md text-sm font-medium transition-colors border-l-2 whitespace-nowrap ${
-                    reduit ? "justify-center px-2" : "px-3"
+                  className={`flex items-center gap-2.5 py-2 rounded-md text-sm font-medium transition-colors border-l-2 whitespace-nowrap px-3 ${
+                    reduit ? "md:justify-center md:px-2" : ""
                   } ${
                     active
                       ? "bg-white/[0.06] border-accent text-white"
@@ -148,7 +153,7 @@ export default function SidebarNav({
                   }`}
                 >
                   <span className="shrink-0 w-[18px] h-[18px]">{ICONS[item.onglet]}</span>
-                  {!reduit && label}
+                  <span className={reduit ? "md:hidden" : ""}>{label}</span>
                 </Link>
               );
             })}

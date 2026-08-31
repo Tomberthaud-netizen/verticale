@@ -239,23 +239,25 @@ const TYPES_MIME_AUTORISES = new Set(["image/jpeg", "image/png", "image/webp", "
 
 export async function ajouterPhoto(chantierId: string, formData: FormData) {
   await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
-  const fichier = formData.get("photo");
-  if (!(fichier instanceof File) || fichier.size === 0) {
-    throw new Error("Sélectionnez une photo à ajouter.");
+  const fichiers = formData.getAll("photo").filter((f): f is File => f instanceof File && f.size > 0);
+  if (fichiers.length === 0) {
+    throw new Error("Sélectionnez au moins une photo à ajouter.");
   }
-  if (!TYPES_MIME_AUTORISES.has(fichier.type)) {
-    throw new Error("Format d'image non pris en charge (JPEG, PNG, WEBP ou GIF).");
+  for (const fichier of fichiers) {
+    if (!TYPES_MIME_AUTORISES.has(fichier.type)) {
+      throw new Error("Format d'image non pris en charge (JPEG, PNG, WEBP ou GIF).");
+    }
   }
 
-  const octets = Buffer.from(await fichier.arrayBuffer());
-
-  await prisma.photo.create({
-    data: {
-      chantierId,
-      nomFichier: fichier.name,
-      typeMime: fichier.type,
-      donnees: octets,
-    },
+  await prisma.photo.createMany({
+    data: await Promise.all(
+      fichiers.map(async (fichier) => ({
+        chantierId,
+        nomFichier: fichier.name,
+        typeMime: fichier.type,
+        donnees: Buffer.from(await fichier.arrayBuffer()),
+      }))
+    ),
   });
 
   revalidatePath(`/chantiers/${chantierId}`);

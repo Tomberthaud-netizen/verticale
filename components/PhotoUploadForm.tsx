@@ -6,11 +6,12 @@ export default function PhotoUploadForm({ chantierId }: { chantierId: string }) 
   return (
     <form action={action} className="flex flex-wrap items-end gap-2">
       <label className="flex flex-col gap-1 text-xs font-medium text-muted">
-        Ajouter une photo
+        Ajouter des photos
         <input
           type="file"
           name="photo"
           accept="image/png,image/jpeg,image/webp,image/gif"
+          multiple
           required
           className="text-sm border border-border rounded-md px-2 py-1.5 bg-surface"
         />

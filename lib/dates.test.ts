@@ -10,6 +10,7 @@ import {
   calculerPlanningChantier,
   calculerRetardMoyen,
   estWeekend,
+  filtrerDatesImportantesRecentes,
   jourOuvreSuivant,
   jourOuvreSuivantOuMeme,
   trouverProchaineDateImportante,
@@ -254,6 +255,44 @@ describe("trouverProchaineDateImportante", () => {
       d(2026, 1, 5)
     );
     expect(result?.joursRestants).toBe(0);
+  });
+});
+
+describe("filtrerDatesImportantesRecentes", () => {
+  it("masque une date passée depuis plus de la tolérance (2 jours par défaut)", () => {
+    const result = filtrerDatesImportantesRecentes(
+      [{ id: "d1", nom: "Trop vieille", date: d(2026, 1, 2) }],
+      d(2026, 1, 5)
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("garde une date passée depuis 2 jours ou moins (tolérance)", () => {
+    const result = filtrerDatesImportantesRecentes(
+      [{ id: "d1", nom: "Hier", date: d(2026, 1, 4) }],
+      d(2026, 1, 5)
+    );
+    expect(result.map((r) => r.id)).toEqual(["d1"]);
+  });
+
+  it("garde toutes les dates futures, sans limite", () => {
+    const result = filtrerDatesImportantesRecentes(
+      [{ id: "d1", nom: "Dans 100 jours", date: d(2026, 4, 15) }],
+      d(2026, 1, 5)
+    );
+    expect(result.map((r) => r.id)).toEqual(["d1"]);
+  });
+
+  it("trie les dates gardées de la plus proche à la plus lointaine", () => {
+    const result = filtrerDatesImportantesRecentes(
+      [
+        { id: "loin", nom: "Loin", date: d(2026, 1, 20) },
+        { id: "hier", nom: "Hier", date: d(2026, 1, 4) },
+        { id: "proche", nom: "Proche", date: d(2026, 1, 6) },
+      ],
+      d(2026, 1, 5)
+    );
+    expect(result.map((r) => r.id)).toEqual(["hier", "proche", "loin"]);
   });
 });
 

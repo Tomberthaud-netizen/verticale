@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireAcces } from "@/lib/authContext";
 import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import { getFournisseurNoms, getFournisseurs, getTypesProduitExistants } from "@/lib/queries";
+import { normaliserUrlExterne } from "@/lib/url";
 import SearchAutocompleteInput from "@/components/SearchAutocompleteInput";
 
 export default async function FournisseursPage({ searchParams }: PageProps<"/fournisseurs">) {
@@ -68,12 +69,11 @@ export default async function FournisseursPage({ searchParams }: PageProps<"/fou
 
       <div className="flex flex-col gap-3">
         {fournisseurs.map((f) => (
-          <Link
+          <div
             key={f.id}
-            href={`/fournisseurs/${f.id}`}
             className="bg-surface border border-border rounded-lg p-4 flex flex-col md:flex-row md:items-center gap-3 hover:border-foreground/30 transition-colors"
           >
-            <div className="flex-1 min-w-0">
+            <Link href={`/fournisseurs/${f.id}`} className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="font-semibold">{f.nom}</span>
                 <span
@@ -99,8 +99,18 @@ export default async function FournisseursPage({ searchParams }: PageProps<"/fou
                 {f.telephone && <> · {f.telephone}</>}
                 {f.ville && <> · {f.ville}</>}
               </p>
-            </div>
-          </Link>
+            </Link>
+            {f.siteWeb && (
+              <a
+                href={normaliserUrlExterne(f.siteWeb)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-sm text-accent hover:underline"
+              >
+                Site web ↗
+              </a>
+            )}
+          </div>
         ))}
       </div>
     </div>

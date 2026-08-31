@@ -270,6 +270,22 @@ export function trouverProchaineDateImportante(
   return { dateImportante: prochaine, joursRestants };
 }
 
+/**
+ * Dates importantes à afficher dans un résumé compact (vue d'ensemble) : celles dépassées
+ * depuis plus de `toleranceJours` jours sont masquées (plus pertinentes une fois trop
+ * anciennes), les autres sont triées de la plus proche à la plus lointaine.
+ */
+export function filtrerDatesImportantesRecentes<T extends DateImportanteInput>(
+  dates: T[],
+  aujourdHui: Date = new Date(),
+  toleranceJours: number = 2
+): T[] {
+  const today = startOfDay(aujourdHui);
+  return dates
+    .filter((d) => differenceInCalendarDays(today, startOfDay(d.date)) <= toleranceJours)
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
+}
+
 export interface AlerteInput {
   id: string;
   joursAvantLivraison: number;

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { requireAcces } from "@/lib/authContext";
 import { getFournisseur, getPrixReferenceParLot } from "@/lib/queries";
 import { formaterMontant } from "@/lib/finances";
+import { normaliserUrlExterne } from "@/lib/url";
 import ToggleActifFournisseurButton from "@/components/ToggleActifFournisseurButton";
 import SupprimerFournisseurButton from "@/components/SupprimerFournisseurButton";
 import RetourButton from "@/components/RetourButton";
@@ -65,7 +66,7 @@ export default async function FournisseurDetailPage({ params }: PageProps<"/four
           {fournisseur.telephone && <p className="text-muted">{fournisseur.telephone}</p>}
           {fournisseur.email && <p className="text-muted">{fournisseur.email}</p>}
           {fournisseur.siteWeb && (
-            <a href={fournisseur.siteWeb} target="_blank" rel="noreferrer" className="underline">
+            <a href={normaliserUrlExterne(fournisseur.siteWeb)} target="_blank" rel="noreferrer" className="underline">
               {fournisseur.siteWeb}
             </a>
           )}

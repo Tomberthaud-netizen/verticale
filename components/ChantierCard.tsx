@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { PHASE_COLORS, libellePhase } from "@/constants/colors";
+import { PHASE_COLORS, EVENEMENT_TYPE_COLORS, libellePhase, libelleEvenement } from "@/constants/colors";
 import type { ChantierCalcule } from "@/lib/chantier";
 import { formaterMontant } from "@/lib/finances";
+import { filtrerDatesImportantesRecentes } from "@/lib/dates";
 
 export default function ChantierCard({ chantier }: { chantier: ChantierCalcule }) {
   const retardTotal = chantier.retards.reduce((s, r) => s + r.nombreJours, 0);
   const alertesDeclenchees = chantier.alertes.filter((a) => a.declenchee).length;
+  const datesImportantesAffichees = filtrerDatesImportantesRecentes(chantier.datesImportantes).slice(0, 3);
 
   return (
     <div className="bg-surface border border-border rounded-lg p-4 flex flex-col md:flex-row md:items-center gap-4">
@@ -60,13 +62,26 @@ export default function ChantierCard({ chantier }: { chantier: ChantierCalcule }
         </div>
       </div>
 
-      {chantier.datesImportantes.length > 0 && (
+      {datesImportantesAffichees.length > 0 && (
         <div className="md:w-56 shrink-0 text-sm border-t md:border-t-0 md:border-l border-border pt-3 md:pt-0 md:pl-4">
           <p className="text-xs font-medium text-muted mb-1">Dates importantes</p>
           <ul className="space-y-0.5">
-            {chantier.datesImportantes.slice(0, 3).map((d) => (
-              <li key={d.id} className="flex justify-between gap-2">
-                <span className="truncate">{d.nom}</span>
+            {datesImportantesAffichees.map((d) => (
+              <li key={d.id} className="flex justify-between items-center gap-2">
+                <span className="flex items-center gap-1.5 min-w-0">
+                  {d.type === "LIVRAISON" && (
+                    <span
+                      className="text-[10px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
+                      style={{
+                        backgroundColor: EVENEMENT_TYPE_COLORS.LIVRAISON.bg,
+                        color: EVENEMENT_TYPE_COLORS.LIVRAISON.text,
+                      }}
+                    >
+                      {libelleEvenement(d)}
+                    </span>
+                  )}
+                  <span className="truncate">{d.nom}</span>
+                </span>
                 <span className="text-muted shrink-0">{format(d.date, "d MMM", { locale: fr })}</span>
               </li>
             ))}

@@ -338,6 +338,10 @@ model Personne {
   telephone      String?
   motDePasseHash String
   estAdmin       Boolean  @default(false)
+  /// Administrateur principal : ses droits admin ne peuvent jamais lui être retirés, et lui seul
+  /// peut retirer les droits admin d'un autre compte ou supprimer un compte admin. Au plus une
+  /// personne à true (imposé côté application, cf. app/personnesActions.ts).
+  estAdminPrincipal Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

@@ -11,6 +11,7 @@ interface PersonneAvecAcces {
   email: string;
   telephone: string | null;
   estAdmin: boolean;
+  estAdminPrincipal: boolean;
   acces: { id: string; onglet: AccesOnglet; entreprise: string | null }[];
 }
 
@@ -50,10 +51,16 @@ export default function PersonnesPanel({
             <div className="flex-1 min-w-0">
               <p className="font-semibold flex items-center gap-2">
                 {personne.prenom} {personne.nom}
-                {personne.estAdmin && (
-                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                    Administrateur
+                {personne.estAdminPrincipal ? (
+                  <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300">
+                    Administrateur principal
                   </span>
+                ) : (
+                  personne.estAdmin && (
+                    <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                      Administrateur
+                    </span>
+                  )
                 )}
               </p>
               <p className="text-sm text-muted mt-0.5">
@@ -81,10 +88,12 @@ export default function PersonnesPanel({
                 <Link href={`/personnes/${personne.id}/modifier`} className="text-sm text-muted hover:text-foreground">
                   Modifier
                 </Link>
-                <SupprimerPersonneButton
-                  personneId={personne.id}
-                  nomComplet={`${personne.prenom} ${personne.nom}`}
-                />
+                {!personne.estAdminPrincipal && (moi.estAdminPrincipal || !personne.estAdmin) && (
+                  <SupprimerPersonneButton
+                    personneId={personne.id}
+                    nomComplet={`${personne.prenom} ${personne.nom}`}
+                  />
+                )}
               </div>
             )}
           </div>

@@ -19,6 +19,7 @@ export interface PersonneConnectee {
   prenom: string;
   email: string;
   estAdmin: boolean;
+  estAdminPrincipal: boolean;
   acces: AccesPersonneItem[];
 }
 
@@ -40,6 +41,7 @@ export async function getPersonneConnectee(): Promise<PersonneConnectee | null> 
     prenom: personne.prenom,
     email: personne.email,
     estAdmin: personne.estAdmin,
+    estAdminPrincipal: personne.estAdminPrincipal,
     acces: personne.acces.map((a) => ({ onglet: a.onglet, entreprise: (a.entreprise as Entreprise | null) ?? null })),
   };
 }

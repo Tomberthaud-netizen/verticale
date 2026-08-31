@@ -14,6 +14,7 @@ export interface PersonneExistante {
   email: string;
   telephone: string | null;
   estAdmin: boolean;
+  estAdminPrincipal: boolean;
   acces: { onglet: AccesOnglet; entreprise: string | null }[];
 }
 
@@ -28,7 +29,15 @@ function accesInitiaux(acces?: PersonneExistante["acces"]): Record<AccesOnglet, 
   return initial;
 }
 
-export default function PersonneForm({ personneExistante }: { personneExistante?: PersonneExistante }) {
+export default function PersonneForm({
+  personneExistante,
+  moiEstAdminPrincipal = false,
+}: {
+  personneExistante?: PersonneExistante;
+  /** Si l'utilisateur connecté n'est pas l'administrateur principal, il ne peut pas retirer
+   * les droits admin d'un compte qui les a déjà. */
+  moiEstAdminPrincipal?: boolean;
+}) {
   const router = useRouter();
   const [nom, setNom] = useState(personneExistante?.nom ?? "");
   const [prenom, setPrenom] = useState(personneExistante?.prenom ?? "");
@@ -39,6 +48,8 @@ export default function PersonneForm({ personneExistante }: { personneExistante?
   const [acces, setAcces] = useState<Record<AccesOnglet, ValeurAcces>>(() => accesInitiaux(personneExistante?.acces));
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+  const adminVerrouille =
+    personneExistante?.estAdminPrincipal || (!!personneExistante?.estAdmin && !moiEstAdminPrincipal);
 
   function definirAcces(onglet: AccesOnglet, valeur: ValeurAcces) {
     setAcces((prev) => ({ ...prev, [onglet]: valeur }));
@@ -147,14 +158,25 @@ export default function PersonneForm({ personneExistante }: { personneExistante?
         <input
           type="checkbox"
           checked={estAdmin}
+          disabled={adminVerrouille}
           onChange={(e) => setEstAdmin(e.target.checked)}
-          className="rounded border-border"
+          className="rounded border-border disabled:opacity-50"
         />
         Administrateur
         <span className="text-xs text-muted font-normal">
           (peut gérer les personnes — créer, modifier, supprimer des comptes)
         </span>
       </label>
+      {personneExistante?.estAdminPrincipal && (
+        <p className="text-xs text-muted -mt-4">
+          Administrateur principal : ses droits ne peuvent pas être retirés.
+        </p>
+      )}
+      {!personneExistante?.estAdminPrincipal && personneExistante?.estAdmin && !moiEstAdminPrincipal && (
+        <p className="text-xs text-muted -mt-4">
+          Seul l&apos;administrateur principal peut retirer les droits administrateur de ce compte.
+        </p>
+      )}
 
       <div className="flex flex-col gap-2">
         <h3 className="text-sm font-semibold">Accès aux onglets</h3>

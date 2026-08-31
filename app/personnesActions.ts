@@ -106,7 +106,7 @@ export interface ModifierPersonneInput {
 }
 
 export async function modifierPersonne(personneId: string, data: ModifierPersonneInput) {
-  await requireAdmin();
+  const moi = await requireAdmin();
 
   const nom = data.nom.trim();
   const prenom = data.prenom.trim();
@@ -121,9 +121,20 @@ export async function modifierPersonne(personneId: string, data: ModifierPersonn
   const autreAvecEmail = await prisma.personne.findFirst({ where: { email, NOT: { id: personneId } } });
   if (autreAvecEmail) throw new Error("Un autre compte utilise déjà cette adresse e-mail.");
 
-  if (!data.estAdmin) {
-    const personneActuelle = await prisma.personne.findUnique({ where: { id: personneId }, select: { estAdmin: true } });
-    if (personneActuelle?.estAdmin && (await compterAdmins(personneId)) === 0) {
+  const personneActuelle = await prisma.personne.findUnique({
+    where: { id: personneId },
+    select: { estAdmin: true, estAdminPrincipal: true },
+  });
+
+  if (personneActuelle?.estAdminPrincipal && !data.estAdmin) {
+    throw new Error("Impossible de retirer les droits administrateur à l'administrateur principal.");
+  }
+
+  if (personneActuelle?.estAdmin && !data.estAdmin) {
+    if (!moi.estAdminPrincipal) {
+      throw new Error("Seul l'administrateur principal peut retirer les droits administrateur d'un compte.");
+    }
+    if ((await compterAdmins(personneId)) === 0) {
       throw new Error("Impossible de retirer les droits administrateur du dernier administrateur.");
     }
   }
@@ -156,9 +167,20 @@ export async function supprimerPersonne(personneId: string) {
   if (total <= 1) {
     throw new Error("Impossible de supprimer le dernier compte.");
   }
-  const cible = await prisma.personne.findUnique({ where: { id: personneId }, select: { estAdmin: true } });
-  if (cible?.estAdmin && (await compterAdmins(personneId)) === 0) {
-    throw new Error("Impossible de supprimer le dernier administrateur.");
+  const cible = await prisma.personne.findUnique({
+    where: { id: personneId },
+    select: { estAdmin: true, estAdminPrincipal: true },
+  });
+  if (cible?.estAdminPrincipal) {
+    throw new Error("Impossible de supprimer le compte de l'administrateur principal.");
+  }
+  if (cible?.estAdmin) {
+    if (!moi.estAdminPrincipal) {
+      throw new Error("Seul l'administrateur principal peut supprimer un compte administrateur.");
+    }
+    if ((await compterAdmins(personneId)) === 0) {
+      throw new Error("Impossible de supprimer le dernier administrateur.");
+    }
   }
   await prisma.personne.delete({ where: { id: personneId } });
   revalidatePath("/administration");

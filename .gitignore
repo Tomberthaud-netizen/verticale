@@ -53,3 +53,5 @@ next-env.d.ts
 /Devis/
 /Logo/
 scratch_*.json
+scratch_*.mjs
+/scripts/*.log

@@ -16,6 +16,7 @@ import { requireAcces } from "@/lib/authContext";
 import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import { envoyerEmail } from "@/lib/mail";
 import { remplacerPlaceholders } from "@/lib/emailTemplate";
+import { geocoderAdresse } from "@/lib/geocodage";
 
 /** Entreprise propriétaire d'un chantier — pour vérifier l'accès à une ressource précise. */
 async function entrepriseDuChantier(chantierId: string): Promise<Entreprise> {
@@ -77,11 +78,15 @@ export async function createChantier(data: CreateChantierInput) {
     }
   }
 
+  const coordonnees = await geocoderAdresse(adresse);
+
   const chantier = await prisma.chantier.create({
     data: {
       nom,
       equipe,
       adresse,
+      latitude: coordonnees?.latitude,
+      longitude: coordonnees?.longitude,
       surfaceM2: data.surfaceM2,
       entreprise,
       dateDebut: new Date(data.dateDebut),
@@ -109,8 +114,13 @@ export async function modifierAdresseChantier(chantierId: string, adresse: strin
   await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
   const adresseNettoyee = adresse.trim();
   if (!adresseNettoyee) throw new Error("L'adresse exacte est obligatoire.");
-  await prisma.chantier.update({ where: { id: chantierId }, data: { adresse: adresseNettoyee } });
+  const coordonnees = await geocoderAdresse(adresseNettoyee);
+  await prisma.chantier.update({
+    where: { id: chantierId },
+    data: { adresse: adresseNettoyee, latitude: coordonnees?.latitude, longitude: coordonnees?.longitude },
+  });
   revalidatePath(`/chantiers/${chantierId}`);
+  revalidatePath("/calendrier");
 }
 
 export async function affecterSousTraitant(chantierId: string, sousTraitantId: string | null) {

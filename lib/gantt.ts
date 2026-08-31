@@ -78,6 +78,8 @@ export interface GanttSegment {
   bg: string;
   border: string;
   label: string;
+  /** Devis planifié pas encore un chantier confirmé : rendu en tireté, comme une estimation. */
+  estime?: boolean;
 }
 
 /**
@@ -107,4 +109,11 @@ export function construireSegments(chantier: ChantierCalcule): GanttSegment[] {
   }));
 
   return [...segmentsPhases, ...segmentsRetards];
+}
+
+/** Résumé affiché sous le nom du chantier dans les vues récapitulatives (ex. "18 j · +3 j de retard"). */
+export function resumerChantier(chantier: ChantierCalcule): string {
+  const totalJours = chantier.phases.reduce((s, p) => s + p.nombreJoursOuvres, 0);
+  const totalRetard = chantier.retards.reduce((s, r) => s + r.nombreJours, 0);
+  return totalRetard > 0 ? `${totalJours} j · +${totalRetard} j de retard` : `${totalJours} j`;
 }

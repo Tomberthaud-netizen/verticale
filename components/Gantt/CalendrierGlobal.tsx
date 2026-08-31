@@ -114,6 +114,7 @@ export default function CalendrierGlobal({ echelle, chantiers }: Props) {
                 today={new Date()}
                 titre={ent}
                 hauteurImpressionCible={hauteurParSection}
+                naviguable
               />
             </section>
           );

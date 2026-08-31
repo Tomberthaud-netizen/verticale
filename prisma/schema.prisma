@@ -68,6 +68,11 @@ model Chantier {
   dateDebut  DateTime
   equipe     String
   adresse    String   @default("")
+  // Coordonnées de `adresse`, résolues via lib/geocodage.ts (OpenStreetMap Nominatim) à la
+  // création/modification de l'adresse — un échec de résolution (adresse introuvable, service
+  // indisponible…) ne bloque jamais l'enregistrement : reste null, la carte ignore ce chantier.
+  latitude   Float?
+  longitude  Float?
   surfaceM2  Float    @default(0)
   entreprise String   @default("VERTICALE")
   createdAt  DateTime @default(now())

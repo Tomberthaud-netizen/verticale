@@ -1,10 +1,11 @@
 import { getChantiers, getDevisPlanifiesSansChantier } from "@/lib/queries";
 import { calculerChantier } from "@/lib/chantier";
 import { calculerEtatChantier, calculerFinPeriode } from "@/lib/dates";
-import { construireEchelleJoursOuvres, construireSegments } from "@/lib/gantt";
+import { construireEchelleJoursOuvres, construireSegments, resumerChantier } from "@/lib/gantt";
 import { PHASE_COLORS, RETARD_COLOR, DEVIS_PROJETE_COLOR } from "@/constants/colors";
 import { requireAcces } from "@/lib/authContext";
 import CalendrierGlobal from "@/components/Gantt/CalendrierGlobal";
+import CarteChantiersChargeur from "@/components/Gantt/CarteChantiersChargeur";
 import PrintButton from "@/components/PrintButton";
 import AgendaSyncButtons from "@/components/AgendaSyncButtons";
 
@@ -34,6 +35,8 @@ export default async function CalendrierPage() {
           id: `devis-${d.id}`,
           label: `${d.intitule} (${d.numero})`,
           href: `/devis/${d.id}`,
+          sousLibelle: `Prévisionnel · ${d.dureeJoursOuvres} j`,
+          attenue: true,
           segments: [
             {
               id: `devis-${d.id}`,
@@ -42,6 +45,7 @@ export default async function CalendrierPage() {
               bg: DEVIS_PROJETE_COLOR.bg,
               border: DEVIS_PROJETE_COLOR.border,
               label: DEVIS_PROJETE_COLOR.label,
+              estime: true,
             },
           ],
         },
@@ -64,10 +68,20 @@ export default async function CalendrierPage() {
       nom: c.nom,
       etat: c.etat,
       entreprise: c.entreprise,
-      row: { id: c.id, label: c.nom, href: `/chantiers/${c.id}`, segments: construireSegments(c) },
+      row: {
+        id: c.id,
+        label: c.nom,
+        href: `/chantiers/${c.id}`,
+        sousLibelle: resumerChantier(c),
+        segments: construireSegments(c),
+      },
     })),
     ...devisRows.map(({ id, nom, etat, entreprise, row }) => ({ id, nom, etat, entreprise, row })),
   ];
+
+  const chantiersCarte = chantiersCalcules
+    .filter((c) => c.etat === "EN_COURS" && c.latitude !== null && c.longitude !== null)
+    .map((c) => ({ id: c.id, nom: c.nom, latitude: c.latitude!, longitude: c.longitude! }));
 
   return (
     <div className="flex flex-col gap-6">
@@ -91,6 +105,7 @@ export default async function CalendrierPage() {
           </span>
         </div>
       </div>
+      {chantiersCarte.length > 0 && <CarteChantiersChargeur chantiers={chantiersCarte} />}
       <AgendaSyncButtons feedPath="/api/ics" label="tous les chantiers" />
       <CalendrierGlobal echelle={echelle} chantiers={rows} />
     </div>

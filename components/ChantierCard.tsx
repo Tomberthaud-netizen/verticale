@@ -51,13 +51,16 @@ export default function ChantierCard({ chantier }: { chantier: ChantierCalcule }
         </div>
         <div className="flex flex-wrap gap-1.5 mt-2">
           {chantier.phases.map((phase) => (
-            <span
-              key={phase.id}
-              title={`Du ${format(phase.dateDebut, "d MMM yyyy", { locale: fr })} au ${format(phase.dateFin, "d MMM yyyy", { locale: fr })}`}
-              className="text-xs font-medium px-2 py-0.5 rounded-full text-white cursor-default"
-              style={{ backgroundColor: PHASE_COLORS[phase.type].bg }}
-            >
-              {libellePhase(phase)}
+            <span key={phase.id} className="relative group/phase">
+              <span
+                className="text-xs font-medium px-2 py-0.5 rounded-full text-white cursor-default block"
+                style={{ backgroundColor: PHASE_COLORS[phase.type].bg }}
+              >
+                {libellePhase(phase)}
+              </span>
+              <span className="pointer-events-none absolute left-1/2 bottom-full z-30 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-md bg-foreground px-2 py-1 text-[11px] font-medium text-background opacity-0 group-hover/phase:opacity-100">
+                Du {format(phase.dateDebut, "d MMM yyyy", { locale: fr })} au {format(phase.dateFin, "d MMM yyyy", { locale: fr })}
+              </span>
             </span>
           ))}
         </div>

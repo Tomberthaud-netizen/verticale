@@ -18,15 +18,17 @@ import SupprimerChantierButton from "@/components/SupprimerChantierButton";
 import ChantierOnglets from "@/components/ChantierOnglets";
 import FinancesForm from "@/components/FinancesForm";
 import AdresseChantierPanel from "@/components/AdresseChantierPanel";
+import PaiementsSousTraitantPanel from "@/components/PaiementsSousTraitantPanel";
+import SousOnglets from "@/components/SousOnglets";
 import SousTraitantChantierSelect from "@/components/SousTraitantChantierSelect";
-import { requireAcces } from "@/lib/authContext";
+import { aAccesSousOnglet, requireAcces } from "@/lib/authContext";
 import type { Entreprise } from "@/constants/entreprises";
 
 export default async function ChantierDetailPage({ params }: PageProps<"/chantiers/[id]">) {
   const { id } = await params;
   const chantier = await getChantier(id);
   if (!chantier) notFound();
-  await requireAcces("VUE_ENSEMBLE", chantier.entreprise as Entreprise);
+  const moi = await requireAcces("VUE_ENSEMBLE", chantier.entreprise as Entreprise);
   const [sousTraitants, modeleRenovation] = await Promise.all([
     getSousTraitantsNoms(chantier.entreprise as Entreprise),
     getModeleRenovationParNom(chantier.equipe),
@@ -156,7 +158,7 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
     </div>
   );
 
-  const finances = (
+  const financesInformations = (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Informations financières</h2>
       <FinancesForm
@@ -172,7 +174,23 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
     </section>
   );
 
-  const adresse = (
+  const financesSousTraitant = (
+    <section className="flex flex-col gap-3">
+      <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Paiements sous-traitant</h2>
+      <PaiementsSousTraitantPanel chantierId={calcule.id} paiements={calcule.paiementsSousTraitant} />
+    </section>
+  );
+
+  const finances = aAccesSousOnglet(moi, "CHANTIER_FINANCES") ? (
+    <SousOnglets
+      onglets={[
+        { id: "informations", label: "Informations", content: financesInformations },
+        { id: "sous-traitant", label: "Sous-traitant", content: financesSousTraitant },
+      ]}
+    />
+  ) : undefined;
+
+  const adresse = aAccesSousOnglet(moi, "CHANTIER_ADRESSE") ? (
     <section className="max-w-xl">
       <AdresseChantierPanel
         chantierId={calcule.id}
@@ -183,7 +201,7 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
         emplacementCles={calcule.emplacementCles}
       />
     </section>
-  );
+  ) : undefined;
 
   return (
     <div className="flex flex-col gap-8">
@@ -221,7 +239,11 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
         <AgendaSyncButtons feedPath={`/api/ics/${calcule.id}`} label="ce chantier" />
       </div>
 
-      <ChantierOnglets planning={planning} finances={finances} adresse={adresse} />
+      <ChantierOnglets
+        planning={aAccesSousOnglet(moi, "CHANTIER_PLANNING") ? planning : undefined}
+        finances={finances}
+        adresse={adresse}
+      />
     </div>
   );
 }

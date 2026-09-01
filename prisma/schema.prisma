@@ -110,9 +110,24 @@ model Chantier {
   devis             Devis[]
   lignesFinancieres LigneFinanciereChantier[]
   factures          Facture[]
+  paiementsSousTraitant PaiementSousTraitant[]
   sousTraitant      SousTraitant?              @relation(fields: [sousTraitantId], references: [id], onDelete: SetNull)
 
   @@index([sousTraitantId])
+}
+
+/// Montant versé au sous-traitant du chantier, daté du jour de saisie. Le libellé n'est pas
+/// stocké : il est dérivé du rang (voir lib/chantier.ts) — "Acompte" pour le premier paiement,
+/// "Situation N" pour les suivants, triés par date d'ajout.
+model PaiementSousTraitant {
+  id         String   @id @default(cuid())
+  chantierId String
+  montant    Float
+  dateAjout  DateTime @default(now())
+
+  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+
+  @@index([chantierId])
 }
 
 model Phase {
@@ -369,6 +384,7 @@ model Personne {
   updatedAt      DateTime @updatedAt
 
   acces           AccesPersonne[]
+  accesSousOnglets AccesSousOngletPersonne[]
   devisResponsable Devis[]
   connexions      Connexion[]
 }
@@ -433,6 +449,27 @@ model AccesPersonne {
   personne Personne @relation(fields: [personneId], references: [id], onDelete: Cascade)
 
   @@unique([personneId, onglet])
+  @@index([personneId])
+}
+
+/// Accès fin à un sous-onglet à l'intérieur d'un onglet déjà autorisé (ex. autoriser "Chantiers"
+/// mais masquer son sous-onglet Finances pour cette personne). Présence = accès autorisé,
+/// absence = masqué. Préfixé par la section concernée pour permettre d'en ajouter d'autres plus
+/// tard (Devis, Catalogue…) sans ambiguïté.
+enum AccesSousOnglet {
+  CHANTIER_PLANNING
+  CHANTIER_FINANCES
+  CHANTIER_ADRESSE
+}
+
+model AccesSousOngletPersonne {
+  id         String          @id @default(cuid())
+  personneId String
+  sousOnglet AccesSousOnglet
+
+  personne Personne @relation(fields: [personneId], references: [id], onDelete: Cascade)
+
+  @@unique([personneId, sousOnglet])
   @@index([personneId])
 }
 

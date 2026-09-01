@@ -229,12 +229,6 @@ export default function ChantierForm({
             className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
           />
         </label>
-        <div className="flex flex-col gap-1 text-sm font-medium">
-          Date de fin calculée
-          <div className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background text-muted">
-            {dateFinPrevisionnelle ? format(dateFinPrevisionnelle, "d MMMM yyyy", { locale: fr }) : "—"}
-          </div>
-        </div>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -316,6 +310,13 @@ export default function ChantierForm({
               </div>
             );
           })}
+        </div>
+
+        <div className="flex flex-col gap-1 text-sm font-medium">
+          Date de fin calculée
+          <div className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background text-muted">
+            {dateFinPrevisionnelle ? format(dateFinPrevisionnelle, "d MMMM yyyy", { locale: fr }) : "—"}
+          </div>
         </div>
       </div>
 

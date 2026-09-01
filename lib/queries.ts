@@ -17,6 +17,7 @@ export function getChantiers(entreprise?: Entreprise) {
       photos: { select: { id: true, chantierId: true, nomFichier: true, dateAjout: true } },
       devis: { include: { lignes: true } },
       lignesFinancieres: { orderBy: { createdAt: "asc" } },
+      paiementsSousTraitant: true,
     },
     orderBy: { dateDebut: "asc" },
   });
@@ -36,6 +37,7 @@ export function getChantier(id: string) {
       },
       devis: { include: { lignes: true } },
       lignesFinancieres: { orderBy: { createdAt: "asc" } },
+      paiementsSousTraitant: { orderBy: { dateAjout: "asc" } },
       sousTraitant: { select: { id: true, nom: true } },
     },
   });
@@ -178,7 +180,7 @@ export function getPersonnes() {
 }
 
 export function getPersonne(id: string) {
-  return prisma.personne.findUnique({ where: { id }, include: { acces: true } });
+  return prisma.personne.findUnique({ where: { id }, include: { acces: true, accesSousOnglets: true } });
 }
 
 export interface FiltreFournisseur {

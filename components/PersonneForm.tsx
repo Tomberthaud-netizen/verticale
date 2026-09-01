@@ -3,9 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { creerPersonne, modifierPersonne } from "@/app/personnesActions";
-import { ACCES_LABELS, ACCES_ONGLETS, ONGLETS_SANS_ENTREPRISE } from "@/constants/acces";
+import {
+  ACCES_LABELS,
+  ACCES_ONGLETS,
+  ACCES_SOUS_ONGLET_LABELS,
+  ONGLETS_SANS_ENTREPRISE,
+  SOUS_ONGLETS_CHANTIER,
+} from "@/constants/acces";
 import { ENTREPRISES } from "@/constants/entreprises";
-import type { AccesOnglet } from "@prisma/client";
+import type { AccesOnglet, AccesSousOnglet } from "@prisma/client";
 
 export interface PersonneExistante {
   id: string;
@@ -16,6 +22,7 @@ export interface PersonneExistante {
   estAdmin: boolean;
   estAdminPrincipal: boolean;
   acces: { onglet: AccesOnglet; entreprise: string | null }[];
+  accesSousOnglets: { sousOnglet: AccesSousOnglet }[];
 }
 
 /** Sélection d'accès par onglet : "" = aucun accès, "BOTH" = les deux entreprises, ou une entreprise précise. */
@@ -46,6 +53,14 @@ export default function PersonneForm({
   const [motDePasse, setMotDePasse] = useState("");
   const [estAdmin, setEstAdmin] = useState(personneExistante?.estAdmin ?? false);
   const [acces, setAcces] = useState<Record<AccesOnglet, ValeurAcces>>(() => accesInitiaux(personneExistante?.acces));
+  const [sousOnglets, setSousOnglets] = useState<Set<AccesSousOnglet>>(
+    () =>
+      new Set(
+        personneExistante
+          ? personneExistante.accesSousOnglets.map((a) => a.sousOnglet)
+          : SOUS_ONGLETS_CHANTIER // nouveau compte : tout visible par défaut, à décocher au besoin
+      )
+  );
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
   const adminVerrouille =
@@ -53,6 +68,15 @@ export default function PersonneForm({
 
   function definirAcces(onglet: AccesOnglet, valeur: ValeurAcces) {
     setAcces((prev) => ({ ...prev, [onglet]: valeur }));
+  }
+
+  function basculerSousOnglet(sousOnglet: AccesSousOnglet, coche: boolean) {
+    setSousOnglets((prev) => {
+      const suivant = new Set(prev);
+      if (coche) suivant.add(sousOnglet);
+      else suivant.delete(sousOnglet);
+      return suivant;
+    });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -64,6 +88,7 @@ export default function PersonneForm({
         onglet,
         entreprise: acces[onglet] === "BOTH" ? null : acces[onglet],
       }));
+      const sousOngletsPayload = Array.from(sousOnglets);
       if (personneExistante) {
         await modifierPersonne(personneExistante.id, {
           nom,
@@ -73,6 +98,7 @@ export default function PersonneForm({
           motDePasse: motDePasse || undefined,
           estAdmin,
           acces: accesPayload,
+          sousOnglets: sousOngletsPayload,
         });
       } else {
         if (!motDePasse) {
@@ -88,6 +114,7 @@ export default function PersonneForm({
           motDePasse,
           estAdmin,
           acces: accesPayload,
+          sousOnglets: sousOngletsPayload,
         });
         if (!emailEnvoye) {
           window.alert(
@@ -216,6 +243,25 @@ export default function PersonneForm({
             );
           })}
         </div>
+
+        {acces.CHANTIERS !== "" && (
+          <div className="flex flex-col gap-1 pl-6 mt-1 border-l-2 border-border">
+            <p className="text-xs text-muted">Sous-onglets visibles sur la fiche chantier</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1">
+              {SOUS_ONGLETS_CHANTIER.map((sousOnglet) => (
+                <label key={sousOnglet} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={sousOnglets.has(sousOnglet)}
+                    onChange={(e) => basculerSousOnglet(sousOnglet, e.target.checked)}
+                    className="rounded border-border"
+                  />
+                  {ACCES_SOUS_ONGLET_LABELS[sousOnglet]}
+                </label>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {erreur && <p className="text-sm text-red-600">{erreur}</p>}

@@ -837,3 +837,20 @@ export async function supprimerLigneFinanciere(chantierId: string, ligneId: stri
   revalidatePath(`/chantiers/${chantierId}`);
   revalidatePath("/");
 }
+
+/** Enregistre un montant versé au sous-traitant, daté d'aujourd'hui. Son libellé ("Acompte" /
+ * "Situation N") est dérivé de son rang à l'affichage, pas stocké (voir lib/chantier.ts). */
+export async function ajouterPaiementSousTraitant(chantierId: string, montant: number) {
+  await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
+  if (!Number.isFinite(montant) || montant <= 0) {
+    throw new Error("Le montant doit être un nombre positif.");
+  }
+  await prisma.paiementSousTraitant.create({ data: { chantierId, montant } });
+  revalidatePath(`/chantiers/${chantierId}`);
+}
+
+export async function supprimerPaiementSousTraitant(chantierId: string, paiementId: string) {
+  await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
+  await prisma.paiementSousTraitant.delete({ where: { id: paiementId } });
+  revalidatePath(`/chantiers/${chantierId}`);
+}

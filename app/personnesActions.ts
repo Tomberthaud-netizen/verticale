@@ -1,12 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import type { AccesOnglet } from "@prisma/client";
+import type { AccesOnglet, AccesSousOnglet } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hacherMotDePasse } from "@/lib/motDePasse";
 import { requireAdmin } from "@/lib/authContext";
 import { envoyerEmail } from "@/lib/mail";
-import { ACCES_ONGLETS, ONGLETS_SANS_ENTREPRISE } from "@/constants/acces";
+import { ACCES_ONGLETS, ONGLETS_SANS_ENTREPRISE, SOUS_ONGLETS_CHANTIER } from "@/constants/acces";
 import { ENTREPRISES } from "@/constants/entreprises";
 
 /** Envoie ses identifiants à une personne nouvellement créée. N'échoue jamais : la création du
@@ -45,6 +45,10 @@ function validerAcces(acces: AccesInput[]): { onglet: AccesOnglet; entreprise: s
     }));
 }
 
+function validerSousOnglets(sousOnglets: string[]): AccesSousOnglet[] {
+  return sousOnglets.filter((s): s is AccesSousOnglet => (SOUS_ONGLETS_CHANTIER as string[]).includes(s));
+}
+
 async function compterAdmins(excludePersonneId?: string): Promise<number> {
   return prisma.personne.count({
     where: { estAdmin: true, ...(excludePersonneId ? { NOT: { id: excludePersonneId } } : {}) },
@@ -59,6 +63,7 @@ export interface CreerPersonneInput {
   motDePasse: string;
   estAdmin: boolean;
   acces: AccesInput[];
+  sousOnglets: string[];
 }
 
 export async function creerPersonne(data: CreerPersonneInput) {
@@ -86,6 +91,7 @@ export async function creerPersonne(data: CreerPersonneInput) {
       motDePasseHash: hacherMotDePasse(data.motDePasse),
       estAdmin: data.estAdmin,
       acces: { create: validerAcces(data.acces) },
+      accesSousOnglets: { create: validerSousOnglets(data.sousOnglets).map((sousOnglet) => ({ sousOnglet })) },
     },
   });
 
@@ -103,6 +109,7 @@ export interface ModifierPersonneInput {
   motDePasse?: string;
   estAdmin: boolean;
   acces: AccesInput[];
+  sousOnglets: string[];
 }
 
 export async function modifierPersonne(personneId: string, data: ModifierPersonneInput) {
@@ -141,6 +148,7 @@ export async function modifierPersonne(personneId: string, data: ModifierPersonn
 
   await prisma.$transaction(async (tx) => {
     await tx.accesPersonne.deleteMany({ where: { personneId } });
+    await tx.accesSousOngletPersonne.deleteMany({ where: { personneId } });
     await tx.personne.update({
       where: { id: personneId },
       data: {
@@ -151,6 +159,7 @@ export async function modifierPersonne(personneId: string, data: ModifierPersonn
         estAdmin: data.estAdmin,
         ...(data.motDePasse ? { motDePasseHash: hacherMotDePasse(data.motDePasse) } : {}),
         acces: { create: validerAcces(data.acces) },
+        accesSousOnglets: { create: validerSousOnglets(data.sousOnglets).map((sousOnglet) => ({ sousOnglet })) },
       },
     });
   });

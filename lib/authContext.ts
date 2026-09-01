@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import type { AccesOnglet } from "@prisma/client";
+import type { AccesOnglet, AccesSousOnglet } from "@prisma/client";
 import { prisma } from "./prisma";
 import { NOM_COOKIE_SESSION, verifierJetonSession } from "./session";
 import { getEntrepriseActive } from "./entrepriseActive";
@@ -21,6 +21,7 @@ export interface PersonneConnectee {
   estAdmin: boolean;
   estAdminPrincipal: boolean;
   acces: AccesPersonneItem[];
+  sousOnglets: AccesSousOnglet[];
 }
 
 export async function getPersonneConnectee(): Promise<PersonneConnectee | null> {
@@ -31,7 +32,7 @@ export async function getPersonneConnectee(): Promise<PersonneConnectee | null> 
 
   const personne = await prisma.personne.findUnique({
     where: { id: payload.personneId },
-    include: { acces: true },
+    include: { acces: true, accesSousOnglets: true },
   });
   if (!personne) return null;
 
@@ -43,6 +44,7 @@ export async function getPersonneConnectee(): Promise<PersonneConnectee | null> 
     estAdmin: personne.estAdmin,
     estAdminPrincipal: personne.estAdminPrincipal,
     acces: personne.acces.map((a) => ({ onglet: a.onglet, entreprise: (a.entreprise as Entreprise | null) ?? null })),
+    sousOnglets: personne.accesSousOnglets.map((a) => a.sousOnglet),
   };
 }
 
@@ -57,6 +59,12 @@ export function aAcces(personne: PersonneConnectee, onglet: AccesOnglet, entrepr
   if (ONGLETS_SANS_ENTREPRISE.includes(onglet)) return true;
   if (ligne.entreprise === null || entreprise === undefined) return true;
   return ligne.entreprise === entreprise;
+}
+
+/** Vrai si la personne a accès à ce sous-onglet (ex. CHANTIER_FINANCES), pour masquer un
+ * sous-onglet précis à l'intérieur d'un onglet déjà autorisé. */
+export function aAccesSousOnglet(personne: PersonneConnectee, sousOnglet: AccesSousOnglet): boolean {
+  return personne.sousOnglets.includes(sousOnglet);
 }
 
 /**

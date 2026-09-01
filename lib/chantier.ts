@@ -1,4 +1,15 @@
-import type { Alerte, Chantier, DateImportante, Devis, LigneDevis, LigneFinanciereChantier, Phase, Photo, Retard } from "@prisma/client";
+import type {
+  Alerte,
+  Chantier,
+  DateImportante,
+  Devis,
+  LigneDevis,
+  LigneFinanciereChantier,
+  PaiementSousTraitant,
+  Phase,
+  Photo,
+  Retard,
+} from "@prisma/client";
 import {
   calculerAlertes,
   calculerAvancement,
@@ -24,6 +35,7 @@ export type ChantierAvecRelations = Chantier & {
   photos: PhotoResume[];
   devis: (Devis & { lignes: LigneDevis[] })[];
   lignesFinancieres: LigneFinanciereChantier[];
+  paiementsSousTraitant: PaiementSousTraitant[];
 };
 
 export interface CaseFinanciereChantier {
@@ -32,6 +44,26 @@ export interface CaseFinanciereChantier {
   montant: number;
   origine: "MANUELLE" | "DEVIS";
   devisId: string | null;
+}
+
+export interface PaiementSousTraitantCalcule {
+  id: string;
+  libelle: string;
+  montant: number;
+  dateAjout: Date;
+}
+
+/** Libellé dérivé du rang du paiement, trié par date d'ajout : "Acompte" pour le premier,
+ * "Situation N" pour les suivants. */
+export function calculerPaiementsSousTraitant(paiements: PaiementSousTraitant[]): PaiementSousTraitantCalcule[] {
+  return [...paiements]
+    .sort((a, b) => a.dateAjout.getTime() - b.dateAjout.getTime())
+    .map((p, i) => ({
+      id: p.id,
+      libelle: i === 0 ? "Acompte" : `Situation ${i}`,
+      montant: p.montant,
+      dateAjout: p.dateAjout,
+    }));
 }
 
 export interface ChantierCalcule {
@@ -58,6 +90,7 @@ export interface ChantierCalcule {
   photos: PhotoResume[];
   prixAchat: number | null;
   casesFinancieres: CaseFinanciereChantier[];
+  paiementsSousTraitant: PaiementSousTraitantCalcule[];
   prixChantier: number | null;
   prixRevente: number | null;
   coutReel: number | null;
@@ -119,6 +152,7 @@ export function calculerChantier(chantier: ChantierAvecRelations): ChantierCalcu
     photos: chantier.photos,
     prixAchat: chantier.prixAchat,
     casesFinancieres,
+    paiementsSousTraitant: calculerPaiementsSousTraitant(chantier.paiementsSousTraitant),
     prixChantier,
     prixRevente: chantier.prixRevente,
     coutReel,

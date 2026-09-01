@@ -28,6 +28,13 @@ const ICONS: Record<AccesOnglet, ReactNode> = {
       <path d="M8 12.5h8M8 16h8M8 9h4" />
     </svg>
   ),
+  CHANTIERS: (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="9" width="7" height="12" rx="1" />
+      <rect x="13" y="3" width="7" height="18" rx="1" />
+      <path d="M6.5 12.5h2M6.5 15.5h2M6.5 18.5h2M15.5 6.5h2M15.5 9.5h2M15.5 12.5h2M15.5 15.5h2" />
+    </svg>
+  ),
   FOURNISSEURS: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 17V9l4-4h6v12" />
@@ -84,7 +91,10 @@ interface NavSection {
 const SECTIONS: NavSection[] = [
   {
     titre: "Vente",
-    items: [{ href: "/devis", onglet: "DEVIS" }],
+    items: [
+      { href: "/devis", onglet: "DEVIS" },
+      { href: "/chantiers", onglet: "CHANTIERS" },
+    ],
   },
   {
     titre: "Gestion",

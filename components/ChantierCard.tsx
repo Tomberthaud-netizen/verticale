@@ -53,7 +53,8 @@ export default function ChantierCard({ chantier }: { chantier: ChantierCalcule }
           {chantier.phases.map((phase) => (
             <span
               key={phase.id}
-              className="text-xs font-medium px-2 py-0.5 rounded-full text-white"
+              title={`Du ${format(phase.dateDebut, "d MMM yyyy", { locale: fr })} au ${format(phase.dateFin, "d MMM yyyy", { locale: fr })}`}
+              className="text-xs font-medium px-2 py-0.5 rounded-full text-white cursor-default"
               style={{ backgroundColor: PHASE_COLORS[phase.type].bg }}
             >
               {libellePhase(phase)}

@@ -141,7 +141,7 @@ export default function ChantierForm({
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
-          Équipe affectée
+          Modèle de rénovation
           <input
             required
             value={equipe}

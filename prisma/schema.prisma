@@ -14,6 +14,7 @@ enum PhaseType {
   DEMOLITION
   RENOVATION
   AMENAGEMENT
+  DECORATION
   PERSONNALISEE
 }
 
@@ -67,6 +68,9 @@ model Chantier {
   id         String   @id @default(cuid())
   nom        String
   dateDebut  DateTime
+  // Modèle de rénovation (libellé "Équipe affectée" à l'origine) : texte libre saisi à la
+  // création, idéalement le nom d'un ModeleRenovation du catalogue (Administration › Modèles de
+  // rénovation) pour permettre le calcul automatique du montant suggéré (voir lib/chantier.ts).
   equipe     String
   adresse    String   @default("")
   // Coordonnées de `adresse`, résolues via lib/geocodage.ts (OpenStreetMap Nominatim) à la
@@ -74,6 +78,12 @@ model Chantier {
   // indisponible…) ne bloque jamais l'enregistrement : reste null, la carte ignore ce chantier.
   latitude   Float?
   longitude  Float?
+  // Détails d'accès au logement, facultatifs, verrouillés à l'affichage une fois enregistrés
+  // (bouton "Modifier" dédié sur la fiche chantier) pour éviter une modification accidentelle.
+  etage           String?
+  porte           String?
+  codes           String? @db.Text
+  emplacementCles String? @db.Text
   surfaceM2  Float    @default(0)
   entreprise String   @default("VERTICALE")
   createdAt  DateTime @default(now())
@@ -275,6 +285,18 @@ model DureeTypeTravaux {
   joursParM2 Float?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+
+/// Catalogue des modèles de rénovation (Administration › Modèles de rénovation), avec leur coût
+/// moyen au m². Le champ `equipe` d'un Chantier ("Modèle de rénovation" dans l'UI) est censé
+/// contenir le `nom` d'une entrée de ce catalogue, pour permettre à lib/chantier.ts de calculer un
+/// montant de rénovation suggéré (coûtMoyenM2 × surfaceM2) sur l'onglet Finances de la fiche chantier.
+model ModeleRenovation {
+  id           String   @id @default(cuid())
+  nom          String   @unique
+  coutMoyenM2  Float?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 /// Prix de référence extraits des devis de sous-traitants historiques (dossier Devis/), utilisés

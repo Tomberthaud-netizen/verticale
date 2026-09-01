@@ -8,7 +8,7 @@ import { createChantier } from "@/app/actions";
 import { calculerDateFinPhases, type PhaseType } from "@/lib/dates";
 import { PHASE_COLORS } from "@/constants/colors";
 
-const PHASE_TYPES: PhaseType[] = ["DEMOLITION", "RENOVATION", "AMENAGEMENT", "PERSONNALISEE"];
+const PHASE_TYPES: PhaseType[] = ["DEMOLITION", "RENOVATION", "AMENAGEMENT", "DECORATION", "PERSONNALISEE"];
 
 interface PhaseDraft {
   key: string;
@@ -42,10 +42,12 @@ function suggestionDureePhase(
 export default function ChantierForm({
   sousTraitants = [],
   dureesTypesTravaux = [],
+  modelesRenovation = [],
   entrepriseActive,
 }: {
   sousTraitants?: { id: string; nom: string }[];
   dureesTypesTravaux?: DureeTypeTravauxItem[];
+  modelesRenovation?: { id: string; nom: string }[];
   entrepriseActive: string;
 }) {
   const router = useRouter();
@@ -142,13 +144,36 @@ export default function ChantierForm({
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Modèle de rénovation
-          <input
-            required
-            value={equipe}
-            onChange={(e) => setEquipe(e.target.value)}
-            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
-            placeholder="Ex : Équipe A"
-          />
+          {modelesRenovation.length > 0 ? (
+            <select
+              required
+              value={equipe}
+              onChange={(e) => setEquipe(e.target.value)}
+              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+            >
+              <option value="" disabled>
+                Sélectionner un modèle
+              </option>
+              {modelesRenovation.map((m) => (
+                <option key={m.id} value={m.nom}>
+                  {m.nom}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <>
+              <input
+                required
+                value={equipe}
+                onChange={(e) => setEquipe(e.target.value)}
+                className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+                placeholder="Ex : Rénovation complète"
+              />
+              <span className="text-xs text-muted font-normal">
+                Aucun modèle configuré — Administration › Modèles de rénovation.
+              </span>
+            </>
+          )}
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium sm:col-span-2">
           Adresse exacte du chantier

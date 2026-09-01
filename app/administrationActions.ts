@@ -132,6 +132,35 @@ export async function modifierParametresEmail(objet: string, corps: string) {
   revalidatePath("/administration/email");
 }
 
+/** Ajoute un modèle de rénovation au catalogue (Administration › Modèles de rénovation). */
+export async function ajouterModeleRenovation(nom: string) {
+  await requireAdmin();
+  const nomNettoye = nom.trim();
+  if (!nomNettoye) throw new Error("Le nom du modèle est obligatoire.");
+  const existant = await prisma.modeleRenovation.findUnique({ where: { nom: nomNettoye } });
+  if (existant) throw new Error("Ce modèle de rénovation existe déjà.");
+  await prisma.modeleRenovation.create({ data: { nom: nomNettoye } });
+  revalidatePath("/administration/modeles-renovation");
+  revalidatePath("/chantiers/nouveau");
+}
+
+/** Modifie le coût moyen au m² d'un modèle de rénovation. */
+export async function modifierModeleRenovation(id: string, coutMoyenM2: number | null) {
+  await requireAdmin();
+  if (coutMoyenM2 != null && (!Number.isFinite(coutMoyenM2) || coutMoyenM2 <= 0)) {
+    throw new Error("Le coût moyen au m² doit être un nombre positif.");
+  }
+  await prisma.modeleRenovation.update({ where: { id }, data: { coutMoyenM2 } });
+  revalidatePath("/administration/modeles-renovation");
+}
+
+export async function supprimerModeleRenovation(id: string) {
+  await requireAdmin();
+  await prisma.modeleRenovation.delete({ where: { id } });
+  revalidatePath("/administration/modeles-renovation");
+  revalidatePath("/chantiers/nouveau");
+}
+
 export interface ParametreOngletInput {
   onglet: AccesOnglet;
   libellePersonnalise: string | null;

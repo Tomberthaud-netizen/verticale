@@ -12,6 +12,10 @@ export interface ProduitFournisseurRowData {
   lot: string | null;
   unite: string | null;
   prixUnitaire: number;
+  /** Prix actuel de la ligne jumelle dans le Catalogue de prix (peut avoir divergé du prix
+   * fournisseur si modifiée indépendamment depuis la page Catalogue), ou null si la ligne
+   * jumelle a été supprimée du Catalogue. */
+  prixReference: { prixUnitaire: number } | null;
 }
 
 export default function ProduitFournisseurRow({ item }: { item: ProduitFournisseurRowData }) {
@@ -104,6 +108,12 @@ export default function ProduitFournisseurRow({ item }: { item: ProduitFournisse
             className="border border-border rounded-md px-2 py-1 text-sm bg-background w-24 text-right"
           />
         </td>
+        <td className="py-2 pr-2 text-right tabular-nums text-muted">
+          {item.prixReference ? formaterMontant(item.prixReference.prixUnitaire) : "—"}
+        </td>
+        <td className="py-2 pr-2 text-right">
+          <EcartPrix produit={item.prixUnitaire} catalogue={item.prixReference?.prixUnitaire ?? null} />
+        </td>
         <td className="py-2 pr-0 text-right whitespace-nowrap">
           <button
             type="button"
@@ -128,6 +138,12 @@ export default function ProduitFournisseurRow({ item }: { item: ProduitFournisse
       <td className="py-2 pr-2 text-muted">{item.lot ?? "—"}</td>
       <td className="py-2 pr-2 text-muted">{item.unite ?? "—"}</td>
       <td className="py-2 pr-2 text-right tabular-nums">{formaterMontant(item.prixUnitaire)}</td>
+      <td className="py-2 pr-2 text-right tabular-nums text-muted">
+        {item.prixReference ? formaterMontant(item.prixReference.prixUnitaire) : "—"}
+      </td>
+      <td className="py-2 pr-2 text-right">
+        <EcartPrix produit={item.prixUnitaire} catalogue={item.prixReference?.prixUnitaire ?? null} />
+      </td>
       <td className="py-2 pr-0 text-right whitespace-nowrap">
         <button type="button" onClick={() => setEdition(true)} className="text-sm hover:underline mr-3">
           Modifier
@@ -142,5 +158,21 @@ export default function ProduitFournisseurRow({ item }: { item: ProduitFournisse
         </button>
       </td>
     </tr>
+  );
+}
+
+/** Écart entre le prix fournisseur et le prix catalogue : vert si le fournisseur est moins cher,
+ * rouge s'il est plus cher, neutre si les deux sont égaux ou si le catalogue n'a pas de prix. */
+function EcartPrix({ produit, catalogue }: { produit: number; catalogue: number | null }) {
+  if (catalogue == null) return <span className="text-muted">—</span>;
+  const ecart = produit - catalogue;
+  if (ecart === 0) return <span className="text-muted">=</span>;
+  const pourcentage = catalogue !== 0 ? (ecart / catalogue) * 100 : null;
+  return (
+    <span className={`tabular-nums font-medium ${ecart < 0 ? "text-emerald-700" : "text-red-600"}`}>
+      {ecart > 0 ? "+" : ""}
+      {formaterMontant(ecart)}
+      {pourcentage != null && ` (${ecart > 0 ? "+" : ""}${pourcentage.toFixed(0)}%)`}
+    </span>
   );
 }

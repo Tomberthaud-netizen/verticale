@@ -5,6 +5,7 @@ export const PHASE_COLORS: Record<PhaseType, { bg: string; border: string; label
   DEMOLITION: { bg: "#e05d44", border: "#b8432e", label: "Démolition" },
   RENOVATION: { bg: "#3b82f6", border: "#2563eb", label: "Rénovation" },
   AMENAGEMENT: { bg: "#22a35d", border: "#16803f", label: "Aménagement" },
+  DECORATION: { bg: "#ec4899", border: "#be185d", label: "Décoration" },
   PERSONNALISEE: { bg: "#8b5cf6", border: "#7c3aed", label: "Personnalisée" },
 };
 

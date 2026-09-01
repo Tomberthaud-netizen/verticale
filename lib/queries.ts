@@ -201,7 +201,13 @@ export function getFournisseurs(entreprise: Entreprise, filtres: FiltreFournisse
 export function getFournisseur(id: string) {
   return prisma.fournisseur.findUnique({
     where: { id },
-    include: { typesProduit: true, produits: { orderBy: { designation: "asc" } } },
+    include: {
+      typesProduit: true,
+      produits: {
+        include: { prixReference: { select: { prixUnitaire: true } } },
+        orderBy: { designation: "asc" },
+      },
+    },
   });
 }
 
@@ -347,6 +353,16 @@ export function getToutLeCataloguePrix() {
 /** Durées moyennes (jours ouvrés / m²) par type de travaux, pour la suggestion de durée de phase. */
 export function getDureesTypesTravaux() {
   return prisma.dureeTypeTravaux.findMany({ orderBy: { type: "asc" } });
+}
+
+/** Catalogue des modèles de rénovation (Administration › Modèles de rénovation). */
+export function getModelesRenovation() {
+  return prisma.modeleRenovation.findMany({ orderBy: { nom: "asc" } });
+}
+
+/** Un modèle de rénovation par son nom exact (insensible à la casse), pour la suggestion Finances. */
+export function getModeleRenovationParNom(nom: string) {
+  return prisma.modeleRenovation.findFirst({ where: { nom: { equals: nom.trim() } } });
 }
 
 export async function getLotsDuCatalogue(): Promise<string[]> {

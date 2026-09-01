@@ -219,6 +219,8 @@ export default function ProduitsFournisseurPanel({
                 <th className="py-2 pr-2 font-medium">Lot</th>
                 <th className="py-2 pr-2 font-medium">Unité</th>
                 <th className="py-2 pr-2 font-medium text-right">Prix unitaire HT</th>
+                <th className="py-2 pr-2 font-medium text-right">Prix catalogue</th>
+                <th className="py-2 pr-2 font-medium text-right">Écart</th>
                 <th className="py-2 pr-0 font-medium" />
               </tr>
             </thead>

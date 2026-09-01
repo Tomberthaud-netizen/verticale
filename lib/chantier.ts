@@ -41,6 +41,10 @@ export interface ChantierCalcule {
   adresse: string;
   latitude: number | null;
   longitude: number | null;
+  etage: string | null;
+  porte: string | null;
+  codes: string | null;
+  emplacementCles: string | null;
   surfaceM2: number;
   entreprise: string;
   dateDebut: Date;
@@ -98,6 +102,10 @@ export function calculerChantier(chantier: ChantierAvecRelations): ChantierCalcu
     adresse: chantier.adresse,
     latitude: chantier.latitude,
     longitude: chantier.longitude,
+    etage: chantier.etage,
+    porte: chantier.porte,
+    codes: chantier.codes,
+    emplacementCles: chantier.emplacementCles,
     surfaceM2: chantier.surfaceM2,
     entreprise: chantier.entreprise,
     dateDebut: chantier.dateDebut,

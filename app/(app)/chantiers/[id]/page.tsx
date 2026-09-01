@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getChantier, getSousTraitantsNoms } from "@/lib/queries";
+import { getChantier, getModeleRenovationParNom, getSousTraitantsNoms } from "@/lib/queries";
 import { calculerChantier } from "@/lib/chantier";
 import { construireEchelleJoursOuvres, construireReperes, construireSegments } from "@/lib/gantt";
 import { ETAT_COLORS, libelleEvenement, EVENEMENT_TYPE_COLORS } from "@/constants/colors";
@@ -17,8 +17,7 @@ import AgendaSyncButtons from "@/components/AgendaSyncButtons";
 import SupprimerChantierButton from "@/components/SupprimerChantierButton";
 import ChantierOnglets from "@/components/ChantierOnglets";
 import FinancesForm from "@/components/FinancesForm";
-import AdressePopup from "@/components/AdressePopup";
-import AdresseChantierForm from "@/components/AdresseChantierForm";
+import AdresseChantierPanel from "@/components/AdresseChantierPanel";
 import SousTraitantChantierSelect from "@/components/SousTraitantChantierSelect";
 import { requireAcces } from "@/lib/authContext";
 import type { Entreprise } from "@/constants/entreprises";
@@ -28,9 +27,14 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
   const chantier = await getChantier(id);
   if (!chantier) notFound();
   await requireAcces("VUE_ENSEMBLE", chantier.entreprise as Entreprise);
-  const sousTraitants = await getSousTraitantsNoms(chantier.entreprise as Entreprise);
+  const [sousTraitants, modeleRenovation] = await Promise.all([
+    getSousTraitantsNoms(chantier.entreprise as Entreprise),
+    getModeleRenovationParNom(chantier.equipe),
+  ]);
 
   const calcule = calculerChantier(chantier);
+  const montantRenovationSuggere =
+    modeleRenovation?.coutMoyenM2 != null ? modeleRenovation.coutMoyenM2 * calcule.surfaceM2 : null;
   const echelle = construireEchelleJoursOuvres(calcule.dateDebut, calcule.dateFinCalculee);
   const segments = construireSegments(calcule);
   const reperes = construireReperes(calcule);
@@ -161,21 +165,23 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
         prixRevente={calcule.prixRevente}
         prixChantier={calcule.prixChantier}
         casesFinancieres={calcule.casesFinancieres}
+        montantRenovationSuggere={montantRenovationSuggere}
+        modeleRenovationNom={modeleRenovation?.nom ?? null}
+        surfaceM2={calcule.surfaceM2}
       />
     </section>
   );
 
   const adresse = (
-    <section className="flex flex-col gap-4 max-w-xl">
-      <div>
-        <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-2">Adresse du chantier</h2>
-        {calcule.adresse ? (
-          <AdressePopup adresse={calcule.adresse} />
-        ) : (
-          <p className="text-sm text-muted">Aucune adresse renseignée pour le moment.</p>
-        )}
-      </div>
-      <AdresseChantierForm chantierId={calcule.id} adresse={calcule.adresse} />
+    <section className="max-w-xl">
+      <AdresseChantierPanel
+        chantierId={calcule.id}
+        adresse={calcule.adresse}
+        etage={calcule.etage}
+        porte={calcule.porte}
+        codes={calcule.codes}
+        emplacementCles={calcule.emplacementCles}
+      />
     </section>
   );
 

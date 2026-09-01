@@ -1,6 +1,6 @@
 import { addDays, differenceInCalendarDays, startOfDay } from "date-fns";
 
-export type PhaseType = "DEMOLITION" | "RENOVATION" | "AMENAGEMENT" | "PERSONNALISEE";
+export type PhaseType = "DEMOLITION" | "RENOVATION" | "AMENAGEMENT" | "DECORATION" | "PERSONNALISEE";
 export type EtatChantier = "A_VENIR" | "EN_COURS" | "TERMINE";
 
 /** Seuils d'alerte (en jours avant la livraison) créés par défaut pour chaque chantier. */

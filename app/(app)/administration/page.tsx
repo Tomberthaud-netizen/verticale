@@ -40,6 +40,12 @@ export default async function AdministrationPage() {
               lienHref="/administration/email"
               lienLabel="Gérer le modèle"
             />
+            <AdminCard
+              titre="Modèles de rénovation"
+              description="Types de rénovation disponibles et leur coût moyen au m², pour la suggestion de montant en Finances."
+              lienHref="/administration/modeles-renovation"
+              lienLabel="Gérer les modèles"
+            />
           </>
         )}
       </div>

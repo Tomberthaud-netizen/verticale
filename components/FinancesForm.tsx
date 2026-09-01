@@ -18,6 +18,11 @@ interface FinancesFormProps {
   prixRevente: number | null;
   prixChantier: number | null;
   casesFinancieres: CaseFinanciereChantier[];
+  /** coûtMoyenM2 × surfaceM2 du modèle de rénovation choisi à la création, si un modèle
+   * correspondant existe dans le catalogue (Administration › Modèles de rénovation). */
+  montantRenovationSuggere: number | null;
+  modeleRenovationNom: string | null;
+  surfaceM2: number;
 }
 
 function versChaine(valeur: number | null): string {
@@ -36,6 +41,9 @@ export default function FinancesForm({
   prixRevente: prixRenteInitial,
   prixChantier,
   casesFinancieres,
+  montantRenovationSuggere,
+  modeleRenovationNom,
+  surfaceM2,
 }: FinancesFormProps) {
   const router = useRouter();
   const [prixAchat, setPrixAchat] = useState(versChaine(prixAchatInitial));
@@ -47,6 +55,8 @@ export default function FinancesForm({
   const [montantCase, setMontantCase] = useState("");
   const [erreurCase, setErreurCase] = useState<string | null>(null);
   const [caseEnCours, setCaseEnCours] = useState(false);
+  const [suggestionEnCours, setSuggestionEnCours] = useState(false);
+  const [erreurSuggestion, setErreurSuggestion] = useState<string | null>(null);
 
   const prixAchatNum = versNombre(prixAchat);
   const prixRenteNum = versNombre(prixRevente);
@@ -92,8 +102,45 @@ export default function FinancesForm({
     router.refresh();
   }
 
+  async function handleAjouterSuggestion() {
+    if (montantRenovationSuggere == null) return;
+    setErreurSuggestion(null);
+    setSuggestionEnCours(true);
+    try {
+      await ajouterLigneFinanciere(chantierId, `Estimation — ${modeleRenovationNom}`, montantRenovationSuggere);
+      router.refresh();
+    } catch (err) {
+      setErreurSuggestion(err instanceof Error ? err.message : "Une erreur est survenue.");
+    } finally {
+      setSuggestionEnCours(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
+      {montantRenovationSuggere != null && (
+        <div className="bg-surface border border-dashed border-border rounded-lg p-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-medium">Montant de rénovation suggéré</p>
+            <p className="text-2xl font-semibold mt-1">{formaterMontant(montantRenovationSuggere)}</p>
+            <p className="text-xs text-muted mt-1">
+              {modeleRenovationNom} · {surfaceM2} m²
+            </p>
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={handleAjouterSuggestion}
+              disabled={suggestionEnCours}
+              className="rounded-md border border-border text-sm font-medium px-4 py-2 hover:bg-background transition-colors disabled:opacity-50"
+            >
+              {suggestionEnCours ? "Ajout…" : "Ajouter comme case"}
+            </button>
+            {erreurSuggestion && <p className="text-xs text-red-600">{erreurSuggestion}</p>}
+          </div>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         <div className="grid sm:grid-cols-2 gap-4">
           <label className="flex flex-col gap-1 text-sm font-medium">

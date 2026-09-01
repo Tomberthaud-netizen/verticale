@@ -1,14 +1,15 @@
 import ChantierForm from "@/components/ChantierForm";
 import { requireAcces } from "@/lib/authContext";
 import { getEntrepriseActive } from "@/lib/entrepriseActive";
-import { getDureesTypesTravaux, getSousTraitantsNoms } from "@/lib/queries";
+import { getDureesTypesTravaux, getModelesRenovation, getSousTraitantsNoms } from "@/lib/queries";
 
 export default async function NouveauChantierPage() {
   await requireAcces("VUE_ENSEMBLE");
   const entrepriseActive = await getEntrepriseActive();
-  const [sousTraitants, dureesTypesTravaux] = await Promise.all([
+  const [sousTraitants, dureesTypesTravaux, modelesRenovation] = await Promise.all([
     getSousTraitantsNoms(entrepriseActive),
     getDureesTypesTravaux(),
+    getModelesRenovation(),
   ]);
 
   return (
@@ -18,6 +19,7 @@ export default async function NouveauChantierPage() {
         sousTraitants={sousTraitants}
         entrepriseActive={entrepriseActive}
         dureesTypesTravaux={dureesTypesTravaux}
+        modelesRenovation={modelesRenovation}
       />
     </div>
   );

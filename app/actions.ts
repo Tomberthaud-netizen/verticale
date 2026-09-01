@@ -110,14 +110,30 @@ export async function createChantier(data: CreateChantierInput) {
   return { id: chantier.id };
 }
 
-export async function modifierAdresseChantier(chantierId: string, adresse: string) {
+export interface AdresseChantierInput {
+  adresse: string;
+  etage?: string;
+  porte?: string;
+  codes?: string;
+  emplacementCles?: string;
+}
+
+export async function modifierAdresseChantier(chantierId: string, data: AdresseChantierInput) {
   await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
-  const adresseNettoyee = adresse.trim();
+  const adresseNettoyee = data.adresse.trim();
   if (!adresseNettoyee) throw new Error("L'adresse exacte est obligatoire.");
   const coordonnees = await geocoderAdresse(adresseNettoyee);
   await prisma.chantier.update({
     where: { id: chantierId },
-    data: { adresse: adresseNettoyee, latitude: coordonnees?.latitude, longitude: coordonnees?.longitude },
+    data: {
+      adresse: adresseNettoyee,
+      latitude: coordonnees?.latitude,
+      longitude: coordonnees?.longitude,
+      etage: data.etage?.trim() || null,
+      porte: data.porte?.trim() || null,
+      codes: data.codes?.trim() || null,
+      emplacementCles: data.emplacementCles?.trim() || null,
+    },
   });
   revalidatePath(`/chantiers/${chantierId}`);
   revalidatePath("/calendrier");

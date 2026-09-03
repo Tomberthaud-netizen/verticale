@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getChantier, getModeleRenovationParNom, getSousTraitantsNoms } from "@/lib/queries";
@@ -205,6 +206,12 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
 
   return (
     <div className="flex flex-col gap-8">
+      <Link
+        href="/chantiers"
+        className="print:hidden self-start text-sm font-medium text-muted hover:text-foreground transition-colors"
+      >
+        ← Retour
+      </Link>
       <div className="flex flex-col gap-2">
         <div className="flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-3 flex-wrap">

@@ -43,6 +43,10 @@ const ZOOMS: { value: string; label: string; joursVisibles: number | null }[] = 
   { value: "1AN", label: "1 an", joursVisibles: 260 },
 ];
 const COL_WIDTH_MIN_ZOOM = 4;
+// Hors navigation (fiche chantier individuelle) : la colonne s'étire pour occuper toute la
+// largeur disponible plutôt que de laisser un vide à droite sur un planning court, mais jamais
+// au-delà de cette largeur pour éviter des barres absurdement larges sur un planning très court.
+const COL_WIDTH_MAX_AUTO = 60;
 
 // Référence stable : un tableau littéral en valeur par défaut serait recréé à chaque rendu
 // et invaliderait sans fin le useLayoutEffect ci-dessous (boucle de rendu infinie).
@@ -184,16 +188,20 @@ function GanttNaviguable({
 
   useEffect(() => {
     const el = scrollRef.current;
-    if (!el || !naviguable) return;
+    if (!el) return;
     const observer = new ResizeObserver(([entry]) => setLargeurConteneur(entry.contentRect.width));
     observer.observe(el);
     return () => observer.disconnect();
-  }, [naviguable]);
+  }, []);
 
   const zoomActif = ZOOMS.find((z) => z.value === zoom) ?? ZOOMS[0];
-  const colWidth =
-    naviguable && zoomActif.joursVisibles && largeurConteneur > 0
-      ? Math.max(COL_WIDTH_MIN_ZOOM, largeurConteneur / zoomActif.joursVisibles)
+  const largeurColonnesDisponible = largeurConteneur - (showRowLabels ? LABEL_WIDTH : 0);
+  const colWidth = naviguable
+    ? zoomActif.joursVisibles && largeurConteneur > 0
+      ? Math.max(COL_WIDTH_MIN_ZOOM, largeurColonnesDisponible / zoomActif.joursVisibles)
+      : COL_WIDTH
+    : largeurConteneur > 0 && echelle.length > 0
+      ? Math.min(COL_WIDTH_MAX_AUTO, Math.max(COL_WIDTH, largeurColonnesDisponible / echelle.length))
       : COL_WIDTH;
 
   const todayIndex = today ? echelle.findIndex((j) => j.toDateString() === today.toDateString()) : -1;

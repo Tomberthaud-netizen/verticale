@@ -86,7 +86,11 @@ export default function ChantierCard({ chantier }: { chantier: ChantierCalcule }
                   )}
                   <span className="truncate">{d.nom}</span>
                 </span>
-                <span className="text-muted shrink-0">{format(d.date, "d MMM", { locale: fr })}</span>
+                <span className="text-muted shrink-0">
+                  {d.dateFin
+                    ? `${format(d.date, "d MMM", { locale: fr })} - ${format(d.dateFin, "d MMM", { locale: fr })}`
+                    : format(d.date, "d MMM", { locale: fr })}
+                </span>
               </li>
             ))}
           </ul>

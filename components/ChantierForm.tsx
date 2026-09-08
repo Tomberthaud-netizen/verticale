@@ -54,7 +54,9 @@ export default function ChantierForm({
   const [nom, setNom] = useState("");
   const [equipe, setEquipe] = useState("");
   const [adresse, setAdresse] = useState("");
+  const [description, setDescription] = useState("");
   const [surfaceM2, setSurfaceM2] = useState("");
+  const [nombrePieces, setNombrePieces] = useState("");
   const [sousTraitantId, setSousTraitantId] = useState("");
   const [dateDebut, setDateDebut] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [phases, setPhases] = useState<PhaseDraft[]>([
@@ -107,13 +109,20 @@ export default function ChantierForm({
       setErreur("Renseignez une surface (m²) positive.");
       return;
     }
+    const nombrePiecesNombre = Number(nombrePieces);
+    if (!nombrePiecesNombre || nombrePiecesNombre <= 0 || !Number.isInteger(nombrePiecesNombre)) {
+      setErreur("Renseignez un nombre de pièces (entier positif).");
+      return;
+    }
     setEnCours(true);
     try {
       const { id } = await createChantier({
         nom,
         equipe,
         adresse,
+        description: description.trim() || undefined,
         surfaceM2: surfaceM2Nombre,
+        nombrePieces: nombrePiecesNombre,
         dateDebut,
         sousTraitantId: sousTraitantId || null,
         phases: phases.map((p) => ({
@@ -176,6 +185,16 @@ export default function ChantierForm({
           )}
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium sm:col-span-2">
+          Descriptif du chantier (optionnel)
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            rows={3}
+            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface resize-y"
+            placeholder="Ex : Rénovation complète d'un T3 à réhabiliter, refonte cuisine et salle de bain…"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium sm:col-span-2">
           Adresse exacte du chantier
           <input
             required
@@ -196,6 +215,19 @@ export default function ChantierForm({
             onChange={(e) => setSurfaceM2(e.target.value)}
             className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
             placeholder="Ex : 85"
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Nombre de pièces
+          <input
+            required
+            type="number"
+            min={1}
+            step="1"
+            value={nombrePieces}
+            onChange={(e) => setNombrePieces(e.target.value)}
+            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+            placeholder="Ex : 4"
           />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">

@@ -48,6 +48,8 @@ export function positionnerPoint(echelle: Date[], date: Date): number {
 export interface GanttRepere {
   id: string;
   date: Date;
+  /** Présent pour une date importante en fourchette : le repère s'affiche alors comme une plage. */
+  dateFin?: Date;
   label: string;
   type: "alerte" | "dateImportante";
 }
@@ -64,6 +66,7 @@ export function construireReperes(chantier: ChantierCalcule): GanttRepere[] {
   const reperesDates: GanttRepere[] = chantier.datesImportantes.map((d) => ({
     id: d.id,
     date: d.date,
+    dateFin: d.dateFin ?? undefined,
     label: d.nom,
     type: "dateImportante",
   }));

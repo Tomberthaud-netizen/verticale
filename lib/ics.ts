@@ -87,7 +87,7 @@ export function construireCalendrierICS(chantiers: ChantierCalcule[]): string {
         ...construireEvenement({
           uid: `date-${d.id}@verticale.local`,
           debut: d.date,
-          fin: d.date,
+          fin: d.dateFin ?? d.date,
           titre: `${c.nom} — ${d.nom}`,
         })
       );

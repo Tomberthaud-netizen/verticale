@@ -45,6 +45,8 @@ export interface DateImportanteInput {
   id: string;
   nom: string;
   date: Date;
+  /** Fourchette optionnelle : présent = l'événement s'étend jusqu'à cette date. */
+  dateFin?: Date | null;
   chantierId?: string;
 }
 
@@ -255,18 +257,23 @@ export function calculerRetardMoyen(
   return total / chantiersAvecRetard.length;
 }
 
-/** Prochaine date importante (toutes chantiers confondus) et nombre de jours restants. */
+/**
+ * Prochaine date importante (toutes chantiers confondus) et nombre de jours restants. Une
+ * fourchette compte comme "future" tant que sa date de fin n'est pas dépassée (elle reste donc
+ * affichée pendant qu'elle est en cours), avec un compte à rebours qui vise sa fin dans ce cas.
+ */
 export function trouverProchaineDateImportante(
   dates: DateImportanteInput[],
   aujourdHui: Date = new Date()
 ): { dateImportante: DateImportanteInput; joursRestants: number } | null {
   const today = startOfDay(aujourdHui);
   const futures = dates
-    .filter((d) => startOfDay(d.date).getTime() >= today.getTime())
+    .filter((d) => startOfDay(d.dateFin ?? d.date).getTime() >= today.getTime())
     .sort((a, b) => a.date.getTime() - b.date.getTime());
   if (futures.length === 0) return null;
   const prochaine = futures[0];
-  const joursRestants = differenceInCalendarDays(startOfDay(prochaine.date), today);
+  const cible = startOfDay(prochaine.date).getTime() >= today.getTime() ? prochaine.date : prochaine.dateFin ?? prochaine.date;
+  const joursRestants = Math.max(0, differenceInCalendarDays(startOfDay(cible), today));
   return { dateImportante: prochaine, joursRestants };
 }
 
@@ -282,7 +289,7 @@ export function filtrerDatesImportantesRecentes<T extends DateImportanteInput>(
 ): T[] {
   const today = startOfDay(aujourdHui);
   return dates
-    .filter((d) => differenceInCalendarDays(today, startOfDay(d.date)) <= toleranceJours)
+    .filter((d) => differenceInCalendarDays(today, startOfDay(d.dateFin ?? d.date)) <= toleranceJours)
     .sort((a, b) => a.date.getTime() - b.date.getTime());
 }
 

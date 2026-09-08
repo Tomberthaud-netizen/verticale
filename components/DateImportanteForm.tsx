@@ -12,7 +12,9 @@ const TYPES_EVENEMENT: EvenementType[] = ["LIVRAISON", "REUNION", "INSPECTION", 
 export default function DateImportanteForm({ chantierId }: { chantierId: string }) {
   const router = useRouter();
   const [nom, setNom] = useState("");
+  const [modeDate, setModeDate] = useState<"FIXE" | "FOURCHETTE">("FIXE");
   const [date, setDate] = useState(() => format(new Date(), "yyyy-MM-dd"));
+  const [dateFin, setDateFin] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [type, setType] = useState<EvenementType>("LIVRAISON");
   const [typePersonnalise, setTypePersonnalise] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
@@ -25,11 +27,16 @@ export default function DateImportanteForm({ chantierId }: { chantierId: string 
       setErreur("Précisez le type d'événement.");
       return;
     }
+    if (modeDate === "FOURCHETTE" && dateFin < date) {
+      setErreur("La date de fin doit être postérieure ou égale à la date de début.");
+      return;
+    }
     setEnCours(true);
     try {
       await addDateImportante(chantierId, {
         nom,
         date,
+        dateFin: modeDate === "FOURCHETTE" ? dateFin : undefined,
         type,
         typePersonnalise: type === "AUTRE" ? typePersonnalise.trim() : undefined,
       });
@@ -82,15 +89,52 @@ export default function DateImportanteForm({ chantierId }: { chantierId: string 
         />
       </label>
       <label className="flex flex-col gap-1 text-xs font-medium text-muted">
-        Date
-        <input
-          required
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
+        Mode
+        <select
+          value={modeDate}
+          onChange={(e) => setModeDate(e.target.value as "FIXE" | "FOURCHETTE")}
           className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface"
-        />
+        >
+          <option value="FIXE">Date fixe</option>
+          <option value="FOURCHETTE">Fourchette</option>
+        </select>
       </label>
+      {modeDate === "FIXE" ? (
+        <label className="flex flex-col gap-1 text-xs font-medium text-muted">
+          Date
+          <input
+            required
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface"
+          />
+        </label>
+      ) : (
+        <>
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted">
+            Du
+            <input
+              required
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-medium text-muted">
+            Au
+            <input
+              required
+              type="date"
+              min={date}
+              value={dateFin}
+              onChange={(e) => setDateFin(e.target.value)}
+              className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface"
+            />
+          </label>
+        </>
+      )}
       <button
         type="submit"
         disabled={enCours}

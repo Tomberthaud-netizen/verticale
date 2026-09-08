@@ -44,6 +44,8 @@ export interface CreateChantierInput {
   equipe: string;
   adresse: string;
   surfaceM2: number;
+  nombrePieces: number;
+  description?: string;
   sousTraitantId?: string | null;
   phases: CreateChantierPhaseInput[];
 }
@@ -59,6 +61,9 @@ export async function createChantier(data: CreateChantierInput) {
   }
   if (!data.surfaceM2 || data.surfaceM2 <= 0) {
     throw new Error("La surface (m²) doit être un nombre positif.");
+  }
+  if (!data.nombrePieces || data.nombrePieces <= 0 || !Number.isInteger(data.nombrePieces)) {
+    throw new Error("Le nombre de pièces doit être un entier positif.");
   }
   if (data.sousTraitantId) {
     const sousTraitant = await prisma.sousTraitant.findUnique({
@@ -88,6 +93,8 @@ export async function createChantier(data: CreateChantierInput) {
       latitude: coordonnees?.latitude,
       longitude: coordonnees?.longitude,
       surfaceM2: data.surfaceM2,
+      nombrePieces: data.nombrePieces,
+      description: data.description?.trim() || null,
       entreprise,
       dateDebut: new Date(data.dateDebut),
       sousTraitantId: data.sousTraitantId || null,
@@ -188,6 +195,8 @@ export async function modifierFinances(chantierId: string, data: ModifierFinance
 export interface AddDateImportanteInput {
   nom: string;
   date: string;
+  /** Fourchette optionnelle : présent = l'événement s'étend de `date` à `dateFin`. */
+  dateFin?: string;
   type: EvenementType;
   typePersonnalise?: string;
 }
@@ -201,11 +210,15 @@ export async function addDateImportante(chantierId: string, data: AddDateImporta
   if (data.type === "AUTRE" && !data.typePersonnalise?.trim()) {
     throw new Error("Précisez le type d'événement personnalisé.");
   }
+  if (data.dateFin && new Date(data.dateFin) < new Date(data.date)) {
+    throw new Error("La date de fin de la fourchette doit être postérieure ou égale à la date de début.");
+  }
   await prisma.dateImportante.create({
     data: {
       chantierId,
       nom,
       date: new Date(data.date),
+      dateFin: data.dateFin ? new Date(data.dateFin) : null,
       type: data.type,
       typePersonnalise: data.type === "AUTRE" ? data.typePersonnalise?.trim() : null,
     },

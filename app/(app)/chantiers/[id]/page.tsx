@@ -115,7 +115,11 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
                   </span>
                   {d.nom}
                 </span>
-                <span className="text-muted">{format(d.date, "d MMMM yyyy", { locale: fr })}</span>
+                <span className="text-muted">
+                  {d.dateFin
+                    ? `du ${format(d.date, "d MMMM yyyy", { locale: fr })} au ${format(d.dateFin, "d MMMM yyyy", { locale: fr })}`
+                    : format(d.date, "d MMMM yyyy", { locale: fr })}
+                </span>
               </li>
             ))}
           </ul>
@@ -234,7 +238,8 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
           </div>
         </div>
         <p className="text-sm text-muted flex items-center gap-1.5 flex-wrap">
-          {calcule.entreprise} · Équipe {calcule.equipe} · {calcule.surfaceM2} m² · du{" "}
+          {calcule.entreprise} · Équipe {calcule.equipe} · {calcule.surfaceM2} m²
+          {calcule.nombrePieces != null && ` · ${calcule.nombrePieces} pièce${calcule.nombrePieces > 1 ? "s" : ""}`} · du{" "}
           {format(calcule.dateDebut, "d MMMM yyyy", { locale: fr })} au{" "}
           {format(calcule.dateFinCalculee, "d MMMM yyyy", { locale: fr })} · {calcule.avancement}% d&apos;avancement ·{" "}
           <SousTraitantChantierSelect
@@ -243,6 +248,9 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
             sousTraitants={sousTraitants}
           />
         </p>
+        {calcule.description && (
+          <p className="text-sm text-foreground/90 whitespace-pre-wrap max-w-3xl">{calcule.description}</p>
+        )}
         <AgendaSyncButtons feedPath={`/api/ics/${calcule.id}`} label="ce chantier" />
       </div>
 

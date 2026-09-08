@@ -78,6 +78,8 @@ export interface ChantierCalcule {
   codes: string | null;
   emplacementCles: string | null;
   surfaceM2: number;
+  nombrePieces: number | null;
+  description: string | null;
   entreprise: string;
   dateDebut: Date;
   dateFinCalculee: Date;
@@ -140,6 +142,8 @@ export function calculerChantier(chantier: ChantierAvecRelations): ChantierCalcu
     codes: chantier.codes,
     emplacementCles: chantier.emplacementCles,
     surfaceM2: chantier.surfaceM2,
+    nombrePieces: chantier.nombrePieces,
+    description: chantier.description,
     entreprise: chantier.entreprise,
     dateDebut: chantier.dateDebut,
     dateFinCalculee,

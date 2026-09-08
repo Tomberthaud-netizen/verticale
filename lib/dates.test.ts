@@ -256,6 +256,23 @@ describe("trouverProchaineDateImportante", () => {
     );
     expect(result?.joursRestants).toBe(0);
   });
+
+  it("une fourchette déjà commencée mais pas terminée reste comptée comme future", () => {
+    const result = trouverProchaineDateImportante(
+      [{ id: "d1", nom: "Livraison", date: d(2026, 1, 1), dateFin: d(2026, 1, 10) }],
+      d(2026, 1, 5)
+    );
+    expect(result?.dateImportante.id).toBe("d1");
+    expect(result?.joursRestants).toBe(5);
+  });
+
+  it("une fourchette totalement passée n'est plus comptée comme future", () => {
+    const result = trouverProchaineDateImportante(
+      [{ id: "d1", nom: "Livraison", date: d(2026, 1, 1), dateFin: d(2026, 1, 4) }],
+      d(2026, 1, 5)
+    );
+    expect(result).toBeNull();
+  });
 });
 
 describe("filtrerDatesImportantesRecentes", () => {
@@ -293,6 +310,14 @@ describe("filtrerDatesImportantesRecentes", () => {
       d(2026, 1, 5)
     );
     expect(result.map((r) => r.id)).toEqual(["hier", "proche", "loin"]);
+  });
+
+  it("garde une fourchette dont la fin est encore dans la tolérance, même si le début est plus ancien", () => {
+    const result = filtrerDatesImportantesRecentes(
+      [{ id: "d1", nom: "Fourchette", date: d(2026, 1, 1), dateFin: d(2026, 1, 4) }],
+      d(2026, 1, 5)
+    );
+    expect(result.map((r) => r.id)).toEqual(["d1"]);
   });
 });
 

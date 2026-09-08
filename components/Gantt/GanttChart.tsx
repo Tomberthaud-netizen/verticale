@@ -374,8 +374,16 @@ function GanttGrille({
     echelle.length > 0 ? { debut: echelle[0].getTime(), fin: echelle[echelle.length - 1].getTime() } : null;
 
   const reperesPositionnes = reperes
-    .filter((r) => bornesEchelle && r.date.getTime() >= bornesEchelle.debut && r.date.getTime() <= bornesEchelle.fin)
-    .map((r) => ({ ...r, index: positionnerPoint(echelle, r.date) }))
+    .filter((r) => {
+      if (!bornesEchelle) return false;
+      const finEffective = (r.dateFin ?? r.date).getTime();
+      return finEffective >= bornesEchelle.debut && r.date.getTime() <= bornesEchelle.fin;
+    })
+    .map((r) => ({
+      ...r,
+      index: positionnerPoint(echelle, r.date),
+      indexFin: r.dateFin ? positionnerPoint(echelle, r.dateFin) : null,
+    }))
     .filter((r) => r.index >= 0)
     .sort((a, b) => a.index - b.index);
 
@@ -462,10 +470,17 @@ function GanttGrille({
                 // Près du bord droit, une étiquette ancrée à gauche déborderait de la grille
                 // (et fausserait la mesure de mise à l'échelle) : on l'ancre alors à droite.
                 const presDuBord = width - positionPx < 130;
+                const estFourchette = r.indexFin != null && r.indexFin > r.index;
+                const dateLabel = estFourchette
+                  ? `${format(r.date, "d MMM", { locale: fr })} - ${format(r.dateFin!, "d MMM", { locale: fr })}`
+                  : format(r.date, "d MMM", { locale: fr });
+                const titre = estFourchette
+                  ? `${r.label} — du ${format(r.date, "d MMM yyyy", { locale: fr })} au ${format(r.dateFin!, "d MMM yyyy", { locale: fr })}`
+                  : `${r.label} — ${format(r.date, "d MMM yyyy", { locale: fr })}`;
                 return (
                   <div
                     key={r.id}
-                    title={`${r.label} — ${format(r.date, "d MMM yyyy", { locale: fr })}`}
+                    title={titre}
                     className="absolute whitespace-nowrap text-[9px] leading-none font-semibold"
                     style={
                       presDuBord
@@ -473,9 +488,7 @@ function GanttGrille({
                         : { left: positionPx + 2, top: tiers[i] * TIER_HEIGHT + 2, color: COULEURS_REPERE[r.type] }
                     }
                   >
-                    {presDuBord
-                      ? `${format(r.date, "d MMM", { locale: fr })} · ${r.label} ▾`
-                      : `▾ ${r.label} · ${format(r.date, "d MMM", { locale: fr })}`}
+                    {presDuBord ? `${dateLabel} · ${r.label} ▾` : `▾ ${r.label} · ${dateLabel}`}
                   </div>
                 );
               })}
@@ -581,13 +594,27 @@ function GanttGrille({
             className="absolute top-0 bottom-0 right-0 pointer-events-none"
             style={{ left: showRowLabels ? LABEL_WIDTH : 0 }}
           >
-            {reperesPositionnes.map((r) => (
-              <div
-                key={r.id}
-                className="absolute top-0 bottom-0 border-l border-dashed opacity-60"
-                style={{ left: r.index * colWidth, borderColor: COULEURS_REPERE[r.type] }}
-              />
-            ))}
+            {reperesPositionnes.map((r) =>
+              r.indexFin != null && r.indexFin > r.index ? (
+                <div
+                  key={r.id}
+                  className="absolute top-0 bottom-0 opacity-60"
+                  style={{
+                    left: r.index * colWidth,
+                    width: (r.indexFin - r.index + 1) * colWidth,
+                    backgroundColor: `${COULEURS_REPERE[r.type]}26`,
+                    borderLeft: `1px dashed ${COULEURS_REPERE[r.type]}`,
+                    borderRight: `1px dashed ${COULEURS_REPERE[r.type]}`,
+                  }}
+                />
+              ) : (
+                <div
+                  key={r.id}
+                  className="absolute top-0 bottom-0 border-l border-dashed opacity-60"
+                  style={{ left: r.index * colWidth, borderColor: COULEURS_REPERE[r.type] }}
+                />
+              )
+            )}
           </div>
         )}
       </div>

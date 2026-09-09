@@ -66,7 +66,9 @@ export default function ChantierForm({
   const [equipe, setEquipe] = useState("");
   const [adresse, setAdresse] = useState("");
   const [description, setDescription] = useState("");
-  const [surfaceM2, setSurfaceM2] = useState(chantierACompleter ? String(chantierACompleter.surfaceM2) : "");
+  const [surfaceM2, setSurfaceM2] = useState(
+    chantierACompleter && chantierACompleter.surfaceM2 > 0 ? String(chantierACompleter.surfaceM2) : ""
+  );
   const [nombrePieces, setNombrePieces] = useState(
     chantierACompleter?.nombrePieces != null ? String(chantierACompleter.nombrePieces) : ""
   );
@@ -117,17 +119,15 @@ export default function ChantierForm({
       setErreur("Donnez un nom à chaque phase personnalisée.");
       return;
     }
-    if (!chantierACompleter) {
-      const surfaceM2Nombre = Number(surfaceM2);
-      if (!surfaceM2Nombre || surfaceM2Nombre <= 0) {
-        setErreur("Renseignez une surface (m²) positive.");
-        return;
-      }
-      const nombrePiecesNombre = Number(nombrePieces);
-      if (!nombrePiecesNombre || nombrePiecesNombre <= 0 || !Number.isInteger(nombrePiecesNombre)) {
-        setErreur("Renseignez un nombre de pièces (entier positif).");
-        return;
-      }
+    const surfaceM2Nombre = Number(surfaceM2);
+    if (!surfaceM2Nombre || surfaceM2Nombre <= 0) {
+      setErreur("Renseignez une surface (m²) positive.");
+      return;
+    }
+    const nombrePiecesNombre = Number(nombrePieces);
+    if (!nombrePiecesNombre || nombrePiecesNombre <= 0 || !Number.isInteger(nombrePiecesNombre)) {
+      setErreur("Renseignez un nombre de pièces (entier positif).");
+      return;
     }
     setEnCours(true);
     try {
@@ -141,6 +141,8 @@ export default function ChantierForm({
           equipe,
           adresse,
           dateDebut,
+          surfaceM2: surfaceM2Nombre,
+          nombrePieces: nombrePiecesNombre,
           sousTraitantId: sousTraitantId || null,
           phases: phasesInput,
         });
@@ -152,8 +154,8 @@ export default function ChantierForm({
         equipe,
         adresse,
         description: description.trim() || undefined,
-        surfaceM2: Number(surfaceM2),
-        nombrePieces: Number(nombrePieces),
+        surfaceM2: surfaceM2Nombre,
+        nombrePieces: nombrePiecesNombre,
         dateDebut,
         sousTraitantId: sousTraitantId || null,
         phases: phasesInput,
@@ -239,40 +241,34 @@ export default function ChantierForm({
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Surface (m²)
-          {chantierACompleter ? (
-            <div className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background text-muted">
-              {surfaceM2}
-            </div>
-          ) : (
-            <input
-              required
-              type="number"
-              min={0.01}
-              step="0.01"
-              value={surfaceM2}
-              onChange={(e) => setSurfaceM2(e.target.value)}
-              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
-              placeholder="Ex : 85"
-            />
+          <input
+            required
+            type="number"
+            min={0.01}
+            step="0.01"
+            value={surfaceM2}
+            onChange={(e) => setSurfaceM2(e.target.value)}
+            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+            placeholder="Ex : 85"
+          />
+          {chantierACompleter && (
+            <span className="text-xs text-muted font-normal">Estimation automatique — à vérifier.</span>
           )}
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Nombre de pièces
-          {chantierACompleter ? (
-            <div className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background text-muted">
-              {nombrePieces}
-            </div>
-          ) : (
-            <input
-              required
-              type="number"
-              min={1}
-              step="1"
-              value={nombrePieces}
-              onChange={(e) => setNombrePieces(e.target.value)}
-              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
-              placeholder="Ex : 4"
-            />
+          <input
+            required
+            type="number"
+            min={1}
+            step="1"
+            value={nombrePieces}
+            onChange={(e) => setNombrePieces(e.target.value)}
+            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+            placeholder="Ex : 4"
+          />
+          {chantierACompleter && (
+            <span className="text-xs text-muted font-normal">Estimation automatique — à vérifier.</span>
           )}
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">

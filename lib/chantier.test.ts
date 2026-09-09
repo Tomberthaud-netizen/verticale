@@ -20,6 +20,7 @@ const chantierBase: ChantierAvecRelations = {
   emplacementCles: null,
   surfaceM2: 60,
   nombrePieces: 3,
+  giraffe360ProjectId: null,
   description: null,
   entreprise: "VERTICALE",
   createdAt: d(2026, 1, 1),

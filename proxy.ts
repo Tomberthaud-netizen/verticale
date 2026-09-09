@@ -13,6 +13,9 @@ const EXTENSIONS_STATIQUES = /\.(?:jpg|jpeg|png|gif|svg|webp|ico|css|js|map|woff
 function estPublic(pathname: string): boolean {
   if (CHEMINS_PUBLICS.some((c) => pathname === c)) return true;
   if (pathname.startsWith("/api/ics")) return true;
+  // Webhook externe (Giraffe360) : pas de session navigateur, authentifié par le secret dans
+  // l'URL elle-même (voir app/api/webhooks/giraffe360/[secret]/route.ts).
+  if (pathname.startsWith("/api/webhooks/giraffe360")) return true;
   if (pathname.startsWith("/uploads/")) return true;
   if (EXTENSIONS_STATIQUES.test(pathname)) return true;
   return false;

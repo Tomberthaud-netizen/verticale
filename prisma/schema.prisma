@@ -89,6 +89,10 @@ model Chantier {
   emplacementCles String? @db.Text
   surfaceM2     Float    @default(0)
   nombrePieces  Int?
+  // Id du projet Giraffe360 d'origine, pour les chantiers provisoires créés par le webhook
+  // d'import — permet d'éviter un doublon si Giraffe360 renvoie deux fois la même notification
+  // (contrainte unique : la 2e création échoue proprement plutôt que de dupliquer le chantier).
+  giraffe360ProjectId String? @unique
   description   String?  @db.Text
   entreprise String   @default("VERTICALE")
   createdAt  DateTime @default(now())

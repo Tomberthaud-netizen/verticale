@@ -49,10 +49,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ sec
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("Webhook Giraffe360 :", err);
-    // TEMP DEBUG — à retirer avant de considérer ce diagnostic terminé.
-    return NextResponse.json(
-      { error: "Erreur lors du traitement.", debug: err instanceof Error ? err.message : String(err) },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Erreur lors du traitement." }, { status: 500 });
   }
 }

@@ -4,7 +4,7 @@ import { fr } from "date-fns/locale";
 import { requireAcces } from "@/lib/authContext";
 import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import { getChantiers, getDevisValides, getFactures } from "@/lib/queries";
-import { calculerChantier } from "@/lib/chantier";
+import { calculerChantier, estChantierComplet } from "@/lib/chantier";
 import { calculerMontantTVA, calculerTotalHT, calculerTotalHTNet, calculerTotalTTC } from "@/lib/devis";
 import {
   calculerBeneficeReel,
@@ -27,7 +27,7 @@ export default async function FinancePage() {
     getDevisValides(entreprise),
   ]);
 
-  const chantiersCalcules = chantiers.map(calculerChantier);
+  const chantiersCalcules = chantiers.filter(estChantierComplet).map(calculerChantier);
 
   const devisValidesCalcules = devisValides.map((d) => ({
     ...d,

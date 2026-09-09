@@ -50,6 +50,27 @@ export interface CreateChantierInput {
   phases: CreateChantierPhaseInput[];
 }
 
+async function validerSousTraitant(sousTraitantId: string, entreprise: Entreprise) {
+  const sousTraitant = await prisma.sousTraitant.findUnique({
+    where: { id: sousTraitantId },
+    select: { entreprise: true },
+  });
+  if (!sousTraitant || sousTraitant.entreprise !== entreprise) {
+    throw new Error("Ce sous-traitant n'appartient pas à cette entreprise.");
+  }
+}
+
+function validerPhases(phases: CreateChantierPhaseInput[]) {
+  for (const phase of phases) {
+    if (!phase.nombreJoursOuvres || phase.nombreJoursOuvres <= 0) {
+      throw new Error("Chaque phase doit avoir un nombre de jours ouvrés positif.");
+    }
+    if (phase.type === "PERSONNALISEE" && !phase.nom?.trim()) {
+      throw new Error("Une phase personnalisée doit avoir un nom.");
+    }
+  }
+}
+
 export async function createChantier(data: CreateChantierInput) {
   const entreprise = await getEntrepriseActive();
   await requireAcces("VUE_ENSEMBLE", entreprise);
@@ -65,23 +86,8 @@ export async function createChantier(data: CreateChantierInput) {
   if (!data.nombrePieces || data.nombrePieces <= 0 || !Number.isInteger(data.nombrePieces)) {
     throw new Error("Le nombre de pièces doit être un entier positif.");
   }
-  if (data.sousTraitantId) {
-    const sousTraitant = await prisma.sousTraitant.findUnique({
-      where: { id: data.sousTraitantId },
-      select: { entreprise: true },
-    });
-    if (!sousTraitant || sousTraitant.entreprise !== entreprise) {
-      throw new Error("Ce sous-traitant n'appartient pas à cette entreprise.");
-    }
-  }
-  for (const phase of data.phases) {
-    if (!phase.nombreJoursOuvres || phase.nombreJoursOuvres <= 0) {
-      throw new Error("Chaque phase doit avoir un nombre de jours ouvrés positif.");
-    }
-    if (phase.type === "PERSONNALISEE" && !phase.nom?.trim()) {
-      throw new Error("Une phase personnalisée doit avoir un nom.");
-    }
-  }
+  if (data.sousTraitantId) await validerSousTraitant(data.sousTraitantId, entreprise);
+  validerPhases(data.phases);
 
   const coordonnees = await geocoderAdresse(adresse);
 
@@ -115,6 +121,94 @@ export async function createChantier(data: CreateChantierInput) {
   revalidatePath("/");
   revalidatePath("/calendrier");
   return { id: chantier.id };
+}
+
+/**
+ * Chantier provisoire : seuls nom, surface et nombre de pièces sont connus (import externe,
+ * ex. Giraffe360 — pas encore branché, voir DEPLOIEMENT/plan). Pas de date de démarrage, pas
+ * de phase : le chantier reste absent du calendrier (estChantierComplet) jusqu'à sa
+ * complétion via completerChantier ci-dessous. Aucune UI n'appelle cette action pour l'instant
+ * — elle n'est destinée qu'à un futur point d'import, pas à la saisie manuelle.
+ */
+export interface CreerChantierProvisoireInput {
+  nom: string;
+  nombrePieces: number;
+  surfaceM2: number;
+}
+
+export async function creerChantierProvisoire(data: CreerChantierProvisoireInput) {
+  const entreprise = await getEntrepriseActive();
+  await requireAcces("VUE_ENSEMBLE", entreprise);
+  const nom = data.nom.trim();
+  if (!nom) throw new Error("Le nom est obligatoire.");
+  if (!data.surfaceM2 || data.surfaceM2 <= 0) {
+    throw new Error("La surface (m²) doit être un nombre positif.");
+  }
+  if (!data.nombrePieces || data.nombrePieces <= 0 || !Number.isInteger(data.nombrePieces)) {
+    throw new Error("Le nombre de pièces doit être un entier positif.");
+  }
+  const chantier = await prisma.chantier.create({
+    data: {
+      nom,
+      surfaceM2: data.surfaceM2,
+      nombrePieces: data.nombrePieces,
+      entreprise,
+      alertes: {
+        create: SEUILS_ALERTE_DEFAUT.map((joursAvantLivraison) => ({ joursAvantLivraison })),
+      },
+    },
+  });
+  revalidatePath("/");
+  revalidatePath("/chantiers");
+  return { id: chantier.id };
+}
+
+/** Complète un chantier provisoire avec les champs qui manquaient encore à la création
+ * (équipe, adresse, date de démarrage, phases) — mêmes règles de validation que createChantier. */
+export interface CompleterChantierInput {
+  equipe: string;
+  adresse: string;
+  dateDebut: string;
+  sousTraitantId?: string | null;
+  phases: CreateChantierPhaseInput[];
+}
+
+export async function completerChantier(chantierId: string, data: CompleterChantierInput) {
+  const entreprise = await entrepriseDuChantier(chantierId);
+  await requireAcces("VUE_ENSEMBLE", entreprise);
+  const equipe = data.equipe.trim();
+  const adresse = data.adresse.trim();
+  if (!equipe || !adresse || !data.dateDebut || data.phases.length === 0) {
+    throw new Error("Équipe, adresse exacte, date de démarrage et au moins une phase sont obligatoires.");
+  }
+  if (data.sousTraitantId) await validerSousTraitant(data.sousTraitantId, entreprise);
+  validerPhases(data.phases);
+
+  const coordonnees = await geocoderAdresse(adresse);
+
+  await prisma.chantier.update({
+    where: { id: chantierId },
+    data: {
+      equipe,
+      adresse,
+      latitude: coordonnees?.latitude,
+      longitude: coordonnees?.longitude,
+      dateDebut: new Date(data.dateDebut),
+      sousTraitantId: data.sousTraitantId || null,
+      phases: {
+        create: data.phases.map((p, i) => ({
+          type: p.type,
+          nom: p.type === "PERSONNALISEE" ? p.nom?.trim() : null,
+          nombreJoursOuvres: p.nombreJoursOuvres,
+          ordre: i + 1,
+        })),
+      },
+    },
+  });
+  revalidatePath("/");
+  revalidatePath("/chantiers");
+  revalidatePath(`/chantiers/${chantierId}`);
+  revalidatePath("/calendrier");
 }
 
 export interface AdresseChantierInput {

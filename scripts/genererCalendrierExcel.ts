@@ -15,7 +15,7 @@ import ExcelJS from "exceljs";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getChantiers, getDevisPlanifiesSansChantier } from "../lib/queries";
-import { calculerChantier } from "../lib/chantier";
+import { calculerChantier, estChantierComplet } from "../lib/chantier";
 import { calculerFinPeriode } from "../lib/dates";
 import { construireEchelleJoursOuvres, construireSegments, positionnerSegment, type GanttSegment } from "../lib/gantt";
 import { PHASE_COLORS, RETARD_COLOR, DEVIS_PROJETE_COLOR } from "../constants/colors";
@@ -42,7 +42,7 @@ async function main() {
     return;
   }
 
-  const chantiersCalcules = chantiers.map(calculerChantier);
+  const chantiersCalcules = chantiers.filter(estChantierComplet).map(calculerChantier);
 
   const devisRows: LigneGantt[] = devisPlanifies
     .filter((d) => d.dateDebutPrevisionnelle && d.dureeJoursOuvres)

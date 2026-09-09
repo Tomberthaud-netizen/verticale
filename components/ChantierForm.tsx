@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { createChantier } from "@/app/actions";
+import { completerChantier, createChantier } from "@/app/actions";
 import { calculerDateFinPhases, type PhaseType } from "@/lib/dates";
 import { PHASE_COLORS } from "@/constants/colors";
 
@@ -39,24 +39,37 @@ function suggestionDureePhase(
   return Math.max(1, Math.ceil(duree.joursParM2 * surfaceM2Nombre));
 }
 
+interface ChantierACompleter {
+  id: string;
+  nom: string;
+  surfaceM2: number;
+  nombrePieces: number | null;
+}
+
 export default function ChantierForm({
   sousTraitants = [],
   dureesTypesTravaux = [],
   modelesRenovation = [],
   entrepriseActive,
+  chantierACompleter,
 }: {
   sousTraitants?: { id: string; nom: string }[];
   dureesTypesTravaux?: DureeTypeTravauxItem[];
   modelesRenovation?: { id: string; nom: string }[];
   entrepriseActive: string;
+  /** Présent = on complète un chantier provisoire existant (nom/surface/pièces déjà connus,
+   * en lecture seule) plutôt que d'en créer un nouveau. */
+  chantierACompleter?: ChantierACompleter;
 }) {
   const router = useRouter();
-  const [nom, setNom] = useState("");
+  const [nom, setNom] = useState(chantierACompleter?.nom ?? "");
   const [equipe, setEquipe] = useState("");
   const [adresse, setAdresse] = useState("");
   const [description, setDescription] = useState("");
-  const [surfaceM2, setSurfaceM2] = useState("");
-  const [nombrePieces, setNombrePieces] = useState("");
+  const [surfaceM2, setSurfaceM2] = useState(chantierACompleter ? String(chantierACompleter.surfaceM2) : "");
+  const [nombrePieces, setNombrePieces] = useState(
+    chantierACompleter?.nombrePieces != null ? String(chantierACompleter.nombrePieces) : ""
+  );
   const [sousTraitantId, setSousTraitantId] = useState("");
   const [dateDebut, setDateDebut] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [phases, setPhases] = useState<PhaseDraft[]>([
@@ -104,32 +117,46 @@ export default function ChantierForm({
       setErreur("Donnez un nom à chaque phase personnalisée.");
       return;
     }
-    const surfaceM2Nombre = Number(surfaceM2);
-    if (!surfaceM2Nombre || surfaceM2Nombre <= 0) {
-      setErreur("Renseignez une surface (m²) positive.");
-      return;
-    }
-    const nombrePiecesNombre = Number(nombrePieces);
-    if (!nombrePiecesNombre || nombrePiecesNombre <= 0 || !Number.isInteger(nombrePiecesNombre)) {
-      setErreur("Renseignez un nombre de pièces (entier positif).");
-      return;
+    if (!chantierACompleter) {
+      const surfaceM2Nombre = Number(surfaceM2);
+      if (!surfaceM2Nombre || surfaceM2Nombre <= 0) {
+        setErreur("Renseignez une surface (m²) positive.");
+        return;
+      }
+      const nombrePiecesNombre = Number(nombrePieces);
+      if (!nombrePiecesNombre || nombrePiecesNombre <= 0 || !Number.isInteger(nombrePiecesNombre)) {
+        setErreur("Renseignez un nombre de pièces (entier positif).");
+        return;
+      }
     }
     setEnCours(true);
     try {
+      const phasesInput = phases.map((p) => ({
+        type: p.type,
+        nom: p.type === "PERSONNALISEE" ? p.nom.trim() : undefined,
+        nombreJoursOuvres: p.nombreJoursOuvres,
+      }));
+      if (chantierACompleter) {
+        await completerChantier(chantierACompleter.id, {
+          equipe,
+          adresse,
+          dateDebut,
+          sousTraitantId: sousTraitantId || null,
+          phases: phasesInput,
+        });
+        router.push(`/chantiers/${chantierACompleter.id}`);
+        return;
+      }
       const { id } = await createChantier({
         nom,
         equipe,
         adresse,
         description: description.trim() || undefined,
-        surfaceM2: surfaceM2Nombre,
-        nombrePieces: nombrePiecesNombre,
+        surfaceM2: Number(surfaceM2),
+        nombrePieces: Number(nombrePieces),
         dateDebut,
         sousTraitantId: sousTraitantId || null,
-        phases: phases.map((p) => ({
-          type: p.type,
-          nom: p.type === "PERSONNALISEE" ? p.nom.trim() : undefined,
-          nombreJoursOuvres: p.nombreJoursOuvres,
-        })),
+        phases: phasesInput,
       });
       router.push(creerDevis ? `/devis/nouveau?chantierId=${id}` : `/chantiers/${id}`);
     } catch (err) {
@@ -143,13 +170,19 @@ export default function ChantierForm({
       <div className="grid sm:grid-cols-2 gap-4">
         <label className="flex flex-col gap-1 text-sm font-medium">
           Nom du chantier
-          <input
-            required
-            value={nom}
-            onChange={(e) => setNom(e.target.value)}
-            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
-            placeholder="Ex : Rénovation 12 rue des Lilas"
-          />
+          {chantierACompleter ? (
+            <div className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background text-muted">
+              {nom}
+            </div>
+          ) : (
+            <input
+              required
+              value={nom}
+              onChange={(e) => setNom(e.target.value)}
+              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+              placeholder="Ex : Rénovation 12 rue des Lilas"
+            />
+          )}
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Modèle de rénovation
@@ -206,29 +239,41 @@ export default function ChantierForm({
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Surface (m²)
-          <input
-            required
-            type="number"
-            min={0.01}
-            step="0.01"
-            value={surfaceM2}
-            onChange={(e) => setSurfaceM2(e.target.value)}
-            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
-            placeholder="Ex : 85"
-          />
+          {chantierACompleter ? (
+            <div className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background text-muted">
+              {surfaceM2}
+            </div>
+          ) : (
+            <input
+              required
+              type="number"
+              min={0.01}
+              step="0.01"
+              value={surfaceM2}
+              onChange={(e) => setSurfaceM2(e.target.value)}
+              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+              placeholder="Ex : 85"
+            />
+          )}
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Nombre de pièces
-          <input
-            required
-            type="number"
-            min={1}
-            step="1"
-            value={nombrePieces}
-            onChange={(e) => setNombrePieces(e.target.value)}
-            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
-            placeholder="Ex : 4"
-          />
+          {chantierACompleter ? (
+            <div className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background text-muted">
+              {nombrePieces}
+            </div>
+          ) : (
+            <input
+              required
+              type="number"
+              min={1}
+              step="1"
+              value={nombrePieces}
+              onChange={(e) => setNombrePieces(e.target.value)}
+              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+              placeholder="Ex : 4"
+            />
+          )}
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Sous-traitant affecté (optionnel)
@@ -352,15 +397,17 @@ export default function ChantierForm({
         </div>
       </div>
 
-      <label className="flex items-center gap-2 text-sm font-medium">
-        <input
-          type="checkbox"
-          checked={creerDevis}
-          onChange={(e) => setCreerDevis(e.target.checked)}
-          className="rounded border-border"
-        />
-        Créer aussi un devis pour ce chantier
-      </label>
+      {!chantierACompleter && (
+        <label className="flex items-center gap-2 text-sm font-medium">
+          <input
+            type="checkbox"
+            checked={creerDevis}
+            onChange={(e) => setCreerDevis(e.target.checked)}
+            className="rounded border-border"
+          />
+          Créer aussi un devis pour ce chantier
+        </label>
+      )}
 
       {erreur && <p className="text-sm text-red-600">{erreur}</p>}
 
@@ -369,7 +416,15 @@ export default function ChantierForm({
         disabled={enCours}
         className="self-start rounded-md bg-foreground text-background text-sm font-medium px-5 py-2.5 hover:opacity-90 transition-opacity disabled:opacity-50"
       >
-        {enCours ? "Création…" : creerDevis ? "Créer le chantier et continuer vers le devis" : "Créer le chantier"}
+        {chantierACompleter
+          ? enCours
+            ? "Complétion…"
+            : "Compléter le chantier"
+          : enCours
+            ? "Création…"
+            : creerDevis
+              ? "Créer le chantier et continuer vers le devis"
+              : "Créer le chantier"}
       </button>
     </form>
   );

@@ -67,11 +67,14 @@ enum ConfianceReference {
 model Chantier {
   id         String   @id @default(cuid())
   nom        String
-  dateDebut  DateTime
+  // Nullable : un chantier provisoire (importé, ou créé via la saisie rapide "3 champs" en
+  // attendant sa complétion) n'a pas encore de date de démarrage — voir estChantierComplet()
+  // dans lib/chantier.ts, qui exclut ces chantiers du calendrier tant qu'elle est absente.
+  dateDebut  DateTime?
   // Modèle de rénovation (libellé "Équipe affectée" à l'origine) : texte libre saisi à la
   // création, idéalement le nom d'un ModeleRenovation du catalogue (Administration › Modèles de
   // rénovation) pour permettre le calcul automatique du montant suggéré (voir lib/chantier.ts).
-  equipe     String
+  equipe     String   @default("")
   adresse    String   @default("")
   // Coordonnées de `adresse`, résolues via lib/geocodage.ts (OpenStreetMap Nominatim) à la
   // création/modification de l'adresse — un échec de résolution (adresse introuvable, service

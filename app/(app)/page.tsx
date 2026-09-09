@@ -1,10 +1,11 @@
 import { calculerRetardMoyen, trouverProchaineDateImportante } from "@/lib/dates";
-import { calculerChantier } from "@/lib/chantier";
+import { calculerChantier, estChantierComplet } from "@/lib/chantier";
 import { getChantiers, getDevisSansChantier } from "@/lib/queries";
 import { aAcces, requireAcces } from "@/lib/authContext";
 import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import StatCard from "@/components/StatCard";
 import ChantierCard from "@/components/ChantierCard";
+import ChantierProvisoireCard from "@/components/ChantierProvisoireCard";
 import DevisCard from "@/components/DevisCard";
 import Link from "next/link";
 
@@ -22,7 +23,8 @@ export default async function HomePage() {
     getChantiers(entreprise),
     peutVoirDevis ? getDevisSansChantier(entreprise) : Promise.resolve([]),
   ]);
-  const chantiersCalcules = chantiers.map(calculerChantier);
+  const provisoires = chantiers.filter((c) => !estChantierComplet(c));
+  const chantiersCalcules = chantiers.filter(estChantierComplet).map(calculerChantier);
 
   const retardMoyen = calculerRetardMoyen(chantiers);
 
@@ -75,6 +77,19 @@ export default async function HomePage() {
             </Link>
             .
           </p>
+        )}
+
+        {provisoires.length > 0 && (
+          <div className="flex flex-col gap-3">
+            <h3 className="text-sm font-semibold text-muted uppercase tracking-wide">
+              À compléter ({provisoires.length})
+            </h3>
+            <div className="flex flex-col gap-3">
+              {provisoires.map((c) => (
+                <ChantierProvisoireCard key={c.id} chantier={c} />
+              ))}
+            </div>
+          </div>
         )}
 
         {GROUPES.map((groupe) => {

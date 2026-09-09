@@ -1,12 +1,12 @@
 import { getChantiers } from "@/lib/queries";
-import { calculerChantier } from "@/lib/chantier";
+import { calculerChantier, estChantierComplet } from "@/lib/chantier";
 import { construireCalendrierICS } from "@/lib/ics";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const chantiers = await getChantiers();
-  const ics = construireCalendrierICS(chantiers.map(calculerChantier));
+  const ics = construireCalendrierICS(chantiers.filter(estChantierComplet).map(calculerChantier));
 
   return new Response(ics, {
     headers: {

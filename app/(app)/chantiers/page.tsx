@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { calculerChantier } from "@/lib/chantier";
+import { calculerChantier, estChantierComplet } from "@/lib/chantier";
 import { getChantiers } from "@/lib/queries";
 import { requireAcces } from "@/lib/authContext";
 import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import ChantierCard from "@/components/ChantierCard";
+import ChantierProvisoireCard from "@/components/ChantierProvisoireCard";
 
 const GROUPES = [
   { etat: "EN_COURS" as const, titre: "En cours" },
@@ -14,7 +15,8 @@ export default async function ChantiersVentePage() {
   const entreprise = await getEntrepriseActive();
   await requireAcces("CHANTIERS", entreprise);
   const chantiers = await getChantiers(entreprise);
-  const chantiersCalcules = chantiers.map(calculerChantier).filter((c) => c.etat !== "TERMINE");
+  const provisoires = chantiers.filter((c) => !estChantierComplet(c));
+  const chantiersCalcules = chantiers.filter(estChantierComplet).map(calculerChantier).filter((c) => c.etat !== "TERMINE");
 
   return (
     <div className="flex flex-col gap-6">
@@ -28,8 +30,21 @@ export default async function ChantiersVentePage() {
         </Link>
       </div>
 
-      {chantiersCalcules.length === 0 && (
+      {chantiersCalcules.length === 0 && provisoires.length === 0 && (
         <p className="text-muted text-sm">Aucun chantier en cours ou à venir.</p>
+      )}
+
+      {provisoires.length > 0 && (
+        <div className="flex flex-col gap-3">
+          <h3 className="text-sm font-semibold text-muted uppercase tracking-wide">
+            À compléter ({provisoires.length})
+          </h3>
+          <div className="flex flex-col gap-3">
+            {provisoires.map((c) => (
+              <ChantierProvisoireCard key={c.id} chantier={c} />
+            ))}
+          </div>
+        </div>
       )}
 
       {GROUPES.map((groupe) => {

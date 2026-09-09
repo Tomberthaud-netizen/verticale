@@ -1,5 +1,5 @@
 import { getChantiers, getDevisPlanifiesSansChantier } from "@/lib/queries";
-import { calculerChantier } from "@/lib/chantier";
+import { calculerChantier, estChantierComplet } from "@/lib/chantier";
 import { calculerEtatChantier, calculerFinPeriode } from "@/lib/dates";
 import { construireEchelleJoursOuvres, construireSegments, resumerChantier } from "@/lib/gantt";
 import { PHASE_COLORS, RETARD_COLOR, DEVIS_PROJETE_COLOR } from "@/constants/colors";
@@ -13,11 +13,13 @@ export default async function CalendrierPage() {
   await requireAcces("CALENDRIER");
   const [chantiers, devisPlanifies] = await Promise.all([getChantiers(), getDevisPlanifiesSansChantier()]);
 
-  if (chantiers.length === 0 && devisPlanifies.length === 0) {
+  // Un chantier provisoire (importé, pas encore complété) n'a pas de date de démarrage : il
+  // reste absent du calendrier tant qu'il n'a pas été complété (voir estChantierComplet).
+  const chantiersCalcules = chantiers.filter(estChantierComplet).map(calculerChantier);
+
+  if (chantiersCalcules.length === 0 && devisPlanifies.length === 0) {
     return <p className="text-sm text-muted">Aucun chantier pour le moment.</p>;
   }
-
-  const chantiersCalcules = chantiers.map(calculerChantier);
 
   const devisRows = devisPlanifies
     .filter((d) => d.dateDebutPrevisionnelle && d.dureeJoursOuvres)

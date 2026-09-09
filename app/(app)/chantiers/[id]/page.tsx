@@ -2,11 +2,18 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getChantier, getModeleRenovationParNom, getSousTraitantsNoms } from "@/lib/queries";
-import { calculerChantier } from "@/lib/chantier";
+import {
+  getChantier,
+  getDureesTypesTravaux,
+  getModeleRenovationParNom,
+  getModelesRenovation,
+  getSousTraitantsNoms,
+} from "@/lib/queries";
+import { calculerChantier, estChantierComplet } from "@/lib/chantier";
 import { construireEchelleJoursOuvres, construireReperes, construireSegments } from "@/lib/gantt";
 import { ETAT_COLORS, libelleEvenement, EVENEMENT_TYPE_COLORS } from "@/constants/colors";
 import GanttChart from "@/components/Gantt/GanttChart";
+import ChantierForm from "@/components/ChantierForm";
 import DateImportanteForm from "@/components/DateImportanteForm";
 import RetardForm from "@/components/RetardForm";
 import AlerteForm from "@/components/AlerteForm";
@@ -23,6 +30,7 @@ import PaiementsSousTraitantPanel from "@/components/PaiementsSousTraitantPanel"
 import SousOnglets from "@/components/SousOnglets";
 import SousTraitantChantierSelect from "@/components/SousTraitantChantierSelect";
 import { aAccesSousOnglet, requireAcces } from "@/lib/authContext";
+import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import type { Entreprise } from "@/constants/entreprises";
 
 export default async function ChantierDetailPage({ params }: PageProps<"/chantiers/[id]">) {
@@ -30,6 +38,55 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
   const chantier = await getChantier(id);
   if (!chantier) notFound();
   const moi = await requireAcces("VUE_ENSEMBLE", chantier.entreprise as Entreprise);
+
+  // Chantier provisoire (importé, pas encore complété) : pas de date de démarrage ni de
+  // phases, donc pas calculable — on affiche un formulaire de complétion plutôt que la fiche
+  // normale (voir estChantierComplet dans lib/chantier.ts).
+  if (!estChantierComplet(chantier)) {
+    const [sousTraitants, dureesTypesTravaux, modelesRenovation, entrepriseActive] = await Promise.all([
+      getSousTraitantsNoms(chantier.entreprise as Entreprise),
+      getDureesTypesTravaux(),
+      getModelesRenovation(),
+      getEntrepriseActive(),
+    ]);
+    return (
+      <div className="flex flex-col gap-8">
+        <Link
+          href="/chantiers"
+          className="print:hidden self-start text-sm font-medium text-muted hover:text-foreground transition-colors"
+        >
+          ← Retour
+        </Link>
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
+            <h1 className="text-2xl font-semibold">{chantier.nom}</h1>
+            <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+              À compléter
+            </span>
+          </div>
+          <SupprimerChantierButton chantierId={chantier.id} nomChantier={chantier.nom} />
+        </div>
+        <p className="text-sm text-muted">
+          Chantier provisoire — {chantier.surfaceM2} m²
+          {chantier.nombrePieces != null && ` · ${chantier.nombrePieces} pièce${chantier.nombrePieces > 1 ? "s" : ""}`}.
+          Complétez les informations ci-dessous pour qu&apos;il apparaisse sur le calendrier.
+        </p>
+        <ChantierForm
+          sousTraitants={sousTraitants}
+          dureesTypesTravaux={dureesTypesTravaux}
+          modelesRenovation={modelesRenovation}
+          entrepriseActive={entrepriseActive}
+          chantierACompleter={{
+            id: chantier.id,
+            nom: chantier.nom,
+            surfaceM2: chantier.surfaceM2,
+            nombrePieces: chantier.nombrePieces,
+          }}
+        />
+      </div>
+    );
+  }
+
   const [sousTraitants, modeleRenovation] = await Promise.all([
     getSousTraitantsNoms(chantier.entreprise as Entreprise),
     getModeleRenovationParNom(chantier.equipe),

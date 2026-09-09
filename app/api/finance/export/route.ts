@@ -2,7 +2,7 @@ import React from "react";
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getChantiers, getFactures } from "@/lib/queries";
-import { calculerChantier } from "@/lib/chantier";
+import { calculerChantier, estChantierComplet } from "@/lib/chantier";
 import { calculerMontantTVA, calculerTotalTTC } from "@/lib/devis";
 import {
   calculerBeneficeReel,
@@ -23,7 +23,7 @@ export async function GET() {
   if (!aAcces(personne, "FINANCE", entreprise)) return NextResponse.json({ error: "Accès refusé." }, { status: 403 });
 
   const [chantiers, factures] = await Promise.all([getChantiers(entreprise), getFactures(entreprise)]);
-  const chantiersCalcules = chantiers.map(calculerChantier);
+  const chantiersCalcules = chantiers.filter(estChantierComplet).map(calculerChantier);
 
   const facturesCalculees = factures.map((f) => {
     const montantPaye = calculerMontantPaye(f.paiements);

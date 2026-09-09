@@ -61,7 +61,8 @@ export default async function SousTraitantDetailPage({ params }: PageProps<"/sou
           <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Dernier chantier avec nous</h2>
           {dernierChantier ? (
             <Link href={`/chantiers/${dernierChantier.id}`} className="underline">
-              {dernierChantier.nom} — {format(dernierChantier.dateDebut, "d MMMM yyyy", { locale: fr })}
+              {dernierChantier.nom}
+              {dernierChantier.dateDebut && ` — ${format(dernierChantier.dateDebut, "d MMMM yyyy", { locale: fr })}`}
             </Link>
           ) : (
             <p className="text-muted">Aucun chantier pour le moment.</p>
@@ -85,7 +86,9 @@ export default async function SousTraitantDetailPage({ params }: PageProps<"/sou
                 <Link href={`/chantiers/${c.id}`} className="underline">
                   {c.nom}
                 </Link>
-                <span className="text-muted">{format(c.dateDebut, "d MMMM yyyy", { locale: fr })}</span>
+                <span className="text-muted">
+                  {c.dateDebut ? format(c.dateDebut, "d MMMM yyyy", { locale: fr }) : "—"}
+                </span>
               </li>
             ))}
           </ul>

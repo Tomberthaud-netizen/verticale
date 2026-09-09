@@ -38,6 +38,9 @@ export type ChantierAvecRelations = Chantier & {
   paiementsSousTraitant: PaiementSousTraitant[];
 };
 
+/** Un chantier dont estChantierComplet() a été vérifié true : dateDebut y est garanti non-null. */
+export type ChantierComplet = ChantierAvecRelations & { dateDebut: Date };
+
 export interface CaseFinanciereChantier {
   id: string;
   libelle: string;
@@ -102,7 +105,24 @@ export interface ChantierCalcule {
   dateLimitePaiement: Date | null;
 }
 
-export function calculerChantier(chantier: ChantierAvecRelations): ChantierCalcule {
+/**
+ * Un chantier est "complet" (calculable, visible sur le calendrier) une fois qu'il a une date
+ * de démarrage et au moins une phase — les deux seuls champs dont calculerChantier a réellement
+ * besoin. Un chantier provisoire (importé) n'a ni l'un ni l'autre tant qu'il n'a pas été
+ * complété. Équipe/adresse ne sont volontairement PAS exigées ici : ce sont des champs
+ * informatifs, pas structurants pour le calcul, et certains chantiers existants ont une
+ * adresse restée vide sans jamais avoir été considérés "incomplets" — les exiger casserait
+ * leur visibilité sur le calendrier rétroactivement. calculerChantier ne doit jamais être
+ * appelé sur un chantier pour lequel cette fonction retourne false : dateDebut y est alors
+ * null, ce que calculerPlanningChantier ne sait pas traiter.
+ */
+export function estChantierComplet<T extends ChantierAvecRelations>(
+  chantier: T
+): chantier is T & ChantierComplet {
+  return chantier.dateDebut != null && chantier.phases.length > 0;
+}
+
+export function calculerChantier(chantier: ChantierComplet): ChantierCalcule {
   const {
     phases: phasesCalculees,
     retards: retardsCalcules,

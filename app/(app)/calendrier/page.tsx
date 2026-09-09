@@ -82,8 +82,8 @@ export default async function CalendrierPage() {
   ];
 
   const chantiersCarte = chantiersCalcules
-    .filter((c) => c.etat === "EN_COURS" && c.latitude !== null && c.longitude !== null)
-    .map((c) => ({ id: c.id, nom: c.nom, latitude: c.latitude!, longitude: c.longitude! }));
+    .filter((c) => c.latitude !== null && c.longitude !== null)
+    .map((c) => ({ id: c.id, nom: c.nom, latitude: c.latitude!, longitude: c.longitude!, etat: c.etat }));
 
   return (
     <div className="flex flex-col gap-6">

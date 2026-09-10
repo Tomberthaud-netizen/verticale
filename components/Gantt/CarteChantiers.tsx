@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import type { Map as LeafletMap } from "leaflet";
 import Link from "next/link";
-import { ETAT_COLORS } from "@/constants/colors";
+import { CARTE_ETAT_COLORS, ETAT_COLORS } from "@/constants/colors";
 import type { EtatChantier } from "@/lib/dates";
 import type { Entreprise } from "@/constants/entreprises";
 import RetirerChantierCarteButton from "./RetirerChantierCarteButton";
@@ -58,7 +58,7 @@ export default function CarteChantiers({ chantiers }: { chantiers: ChantierCarte
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
           {chantiers.map((c) => {
-            const couleur = ETAT_COLORS[c.etat].text;
+            const couleur = CARTE_ETAT_COLORS[c.etat];
             return (
               <CircleMarker
                 key={c.id}

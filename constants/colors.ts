@@ -20,6 +20,14 @@ export const ETAT_COLORS: Record<"A_VENIR" | "EN_COURS" | "TERMINE", { bg: strin
   TERMINE: { bg: "#f4f4f5", text: "#52525b", label: "Terminé" },
 };
 
+/** Couleur des points sur la carte du Calendrier Global — distincte de ETAT_COLORS (badges) :
+ * orange pour un chantier pas encore démarré, bleu en cours, vert (même vert qu'ETAT_COLORS.EN_COURS.text) une fois terminé. */
+export const CARTE_ETAT_COLORS: Record<"A_VENIR" | "EN_COURS" | "TERMINE", string> = {
+  A_VENIR: "#f59e0b",
+  EN_COURS: "#2563eb",
+  TERMINE: "#047857",
+};
+
 /** Libellé affiché pour une phase : son nom personnalisé si présent, sinon le libellé par défaut du type. */
 export function libellePhase(phase: { type: PhaseType; nom?: string | null }): string {
   if (phase.type === "PERSONNALISEE" && phase.nom) return phase.nom;

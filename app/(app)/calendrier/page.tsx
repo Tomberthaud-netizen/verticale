@@ -7,7 +7,7 @@ import { requireAcces } from "@/lib/authContext";
 import type { Entreprise } from "@/constants/entreprises";
 import CalendrierGlobal from "@/components/Gantt/CalendrierGlobal";
 import CarteChantiersChargeur from "@/components/Gantt/CarteChantiersChargeur";
-import PrintButton from "@/components/PrintButton";
+import CalendrierGlobalImpression from "@/components/Gantt/CalendrierGlobalImpression";
 import AgendaSyncButtons from "@/components/AgendaSyncButtons";
 
 export default async function CalendrierPage() {
@@ -94,10 +94,9 @@ export default async function CalendrierPage() {
     }));
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <h1 className="text-2xl font-semibold">Calendrier Global</h1>
-        <PrintButton />
+    <CalendrierGlobalImpression
+      titre={<h1 className="text-2xl font-semibold">Calendrier Global</h1>}
+      legende={
         <div className="flex items-center gap-3 text-xs text-muted flex-wrap">
           {Object.values(PHASE_COLORS).map((p) => (
             <span key={p.label} className="flex items-center gap-1">
@@ -114,10 +113,10 @@ export default async function CalendrierPage() {
             {DEVIS_PROJETE_COLOR.label}
           </span>
         </div>
-      </div>
-      {chantiersCarte.length > 0 && <CarteChantiersChargeur chantiers={chantiersCarte} />}
-      <AgendaSyncButtons feedPath="/api/ics" label="tous les chantiers" />
-      <CalendrierGlobal echelle={echelle} chantiers={rows} />
-    </div>
+      }
+      carte={chantiersCarte.length > 0 ? <CarteChantiersChargeur chantiers={chantiersCarte} /> : null}
+      agendaSync={<AgendaSyncButtons feedPath="/api/ics" label="tous les chantiers" />}
+      calendrier={<CalendrierGlobal echelle={echelle} chantiers={rows} />}
+    />
   );
 }

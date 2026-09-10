@@ -45,7 +45,7 @@ export default function CarteChantiers({ chantiers }: { chantiers: ChantierCarte
   ];
 
   return (
-    <div className="relative rounded-lg overflow-hidden border border-border print:hidden">
+    <div className="relative rounded-lg overflow-hidden border border-border">
       <div
         style={{
           height: agrandie ? HAUTEUR_AGRANDIE : HAUTEUR_REDUITE,
@@ -89,7 +89,7 @@ export default function CarteChantiers({ chantiers }: { chantiers: ChantierCarte
       <button
         type="button"
         onClick={() => setAgrandie((a) => !a)}
-        className="absolute top-2 right-2 z-[1000] bg-surface/95 border border-border rounded-md px-2 py-1 text-xs font-medium shadow-sm hover:bg-surface transition-colors"
+        className="print:hidden absolute top-2 right-2 z-[1000] bg-surface/95 border border-border rounded-md px-2 py-1 text-xs font-medium shadow-sm hover:bg-surface transition-colors"
       >
         {agrandie ? "Réduire la carte" : "Agrandir la carte"}
       </button>

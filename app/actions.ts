@@ -257,6 +257,14 @@ export async function supprimerChantier(chantierId: string) {
   revalidatePath("/calendrier");
 }
 
+/** Retire un chantier terminé de la carte du Calendrier Global (bouton "VENDU"/"Fin de
+ * chantier") — n'affecte que cet affichage, le chantier reste inchangé partout ailleurs. */
+export async function retirerChantierCarte(chantierId: string) {
+  await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
+  await prisma.chantier.update({ where: { id: chantierId }, data: { retireCarte: true } });
+  revalidatePath("/calendrier");
+}
+
 export interface ModifierFinancesInput {
   prixAchat: number | null;
   prixRevente: number | null;

@@ -84,6 +84,7 @@ export interface ChantierCalcule {
   nombrePieces: number | null;
   description: string | null;
   entreprise: string;
+  retireCarte: boolean;
   dateDebut: Date;
   dateFinCalculee: Date;
   etat: EtatChantier;
@@ -165,6 +166,7 @@ export function calculerChantier(chantier: ChantierComplet): ChantierCalcule {
     nombrePieces: chantier.nombrePieces,
     description: chantier.description,
     entreprise: chantier.entreprise,
+    retireCarte: chantier.retireCarte,
     dateDebut: chantier.dateDebut,
     dateFinCalculee,
     etat,

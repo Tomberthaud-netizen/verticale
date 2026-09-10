@@ -1,0 +1,1 @@
+ALTER TABLE `Chantier` ADD COLUMN `retireCarte` BOOLEAN NOT NULL DEFAULT false;

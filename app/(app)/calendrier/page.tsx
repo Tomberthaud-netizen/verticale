@@ -4,6 +4,7 @@ import { calculerEtatChantier, calculerFinPeriode } from "@/lib/dates";
 import { construireEchelleJoursOuvres, construireSegments, resumerChantier } from "@/lib/gantt";
 import { PHASE_COLORS, RETARD_COLOR, DEVIS_PROJETE_COLOR } from "@/constants/colors";
 import { requireAcces } from "@/lib/authContext";
+import type { Entreprise } from "@/constants/entreprises";
 import CalendrierGlobal from "@/components/Gantt/CalendrierGlobal";
 import CarteChantiersChargeur from "@/components/Gantt/CarteChantiersChargeur";
 import PrintButton from "@/components/PrintButton";
@@ -82,8 +83,15 @@ export default async function CalendrierPage() {
   ];
 
   const chantiersCarte = chantiersCalcules
-    .filter((c) => c.latitude !== null && c.longitude !== null)
-    .map((c) => ({ id: c.id, nom: c.nom, latitude: c.latitude!, longitude: c.longitude!, etat: c.etat }));
+    .filter((c) => c.latitude !== null && c.longitude !== null && !c.retireCarte)
+    .map((c) => ({
+      id: c.id,
+      nom: c.nom,
+      latitude: c.latitude!,
+      longitude: c.longitude!,
+      etat: c.etat,
+      entreprise: c.entreprise as Entreprise,
+    }));
 
   return (
     <div className="flex flex-col gap-6">

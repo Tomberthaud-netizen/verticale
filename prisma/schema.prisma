@@ -95,6 +95,9 @@ model Chantier {
   giraffe360ProjectId String? @unique
   description   String?  @db.Text
   entreprise String   @default("VERTICALE")
+  // Retiré manuellement de la carte du Calendrier Global (bouton "VENDU"/"Fin de chantier",
+  // affiché une fois le chantier terminé) — n'affecte que l'affichage sur la carte, rien d'autre.
+  retireCarte Boolean @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

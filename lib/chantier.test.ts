@@ -23,6 +23,7 @@ const chantierBase: ChantierAvecRelations = {
   giraffe360ProjectId: null,
   description: null,
   entreprise: "VERTICALE",
+  retireCarte: false,
   createdAt: d(2026, 1, 1),
   updatedAt: d(2026, 1, 1),
   prixAchat: null,

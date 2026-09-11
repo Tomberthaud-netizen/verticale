@@ -6,16 +6,24 @@ export function calculerPrixChantier(cases: { montant: number }[]): number {
   return cases.reduce((somme, c) => somme + c.montant, 0);
 }
 
-/** Coût réel = prix d'achat du bien + prix du chantier. `null` si aucun des deux n'est renseigné. */
+/** Frais de notaire = 2,5 % du prix d'achat du bien. `null` si le prix d'achat n'est pas renseigné. */
+export function calculerFraisNotaire(prixAchat: number | null | undefined): number | null {
+  if (prixAchat == null) return null;
+  return prixAchat * 0.025;
+}
+
+/** Coût réel = prix d'achat du bien + frais de notaire + prix du chantier. `null` si aucun des deux
+ * premiers n'est renseigné. */
 export function calculerCoutReel(
   prixAchat: number | null | undefined,
   prixChantier: number | null | undefined
 ): number | null {
   if (prixAchat == null && prixChantier == null) return null;
-  return (prixAchat ?? 0) + (prixChantier ?? 0);
+  const fraisNotaire = calculerFraisNotaire(prixAchat) ?? 0;
+  return (prixAchat ?? 0) + fraisNotaire + (prixChantier ?? 0);
 }
 
-/** Bénéfice prévisionnel = prix de revente - coût réel. `null` si l'un des deux manque. */
+/** Bénéfice prévisionnel = prix de vente - coût réel. `null` si l'un des deux manque. */
 export function calculerBeneficePrevisionnel(
   prixRevente: number | null | undefined,
   coutReel: number | null

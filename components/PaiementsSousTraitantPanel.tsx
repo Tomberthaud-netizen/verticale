@@ -11,11 +11,14 @@ import type { PaiementSousTraitantCalcule } from "@/lib/chantier";
 export default function PaiementsSousTraitantPanel({
   chantierId,
   paiements,
+  sousTraitants,
 }: {
   chantierId: string;
   paiements: PaiementSousTraitantCalcule[];
+  sousTraitants: { id: string; nom: string }[];
 }) {
   const router = useRouter();
+  const [sousTraitantId, setSousTraitantId] = useState("");
   const [montant, setMontant] = useState("");
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
@@ -25,9 +28,13 @@ export default function PaiementsSousTraitantPanel({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setErreur(null);
+    if (!sousTraitantId) {
+      setErreur("Sélectionnez le sous-traitant à qui ce paiement est destiné.");
+      return;
+    }
     setEnCours(true);
     try {
-      await ajouterPaiementSousTraitant(chantierId, Number(montant));
+      await ajouterPaiementSousTraitant(chantierId, sousTraitantId, Number(montant));
       setMontant("");
       router.refresh();
     } catch (err) {
@@ -45,8 +52,8 @@ export default function PaiementsSousTraitantPanel({
   return (
     <div className="flex flex-col gap-4 max-w-2xl">
       <p className="text-sm text-muted -mt-1">
-        Montants versés au sous-traitant de ce chantier, datés du jour où vous les ajoutez ici.
-        Le premier est l&apos;Acompte, les suivants les Situations.
+        Montants versés à un sous-traitant de ce chantier, datés du jour où vous les ajoutez ici.
+        Le premier versement à chaque sous-traitant est l&apos;Acompte, les suivants les Situations.
       </p>
 
       {paiements.length > 0 ? (
@@ -56,8 +63,9 @@ export default function PaiementsSousTraitantPanel({
               key={p.id}
               className="flex justify-between items-center gap-3 border border-border rounded-md px-3 py-2 bg-surface text-sm"
             >
-              <span className="flex items-center gap-2 min-w-0">
+              <span className="flex items-center gap-2 min-w-0 flex-wrap">
                 <span className="font-medium">{p.libelle}</span>
+                <span className="text-muted">→ {p.sousTraitantNom}</span>
                 <span className="text-muted">{format(p.dateAjout, "d MMMM yyyy", { locale: fr })}</span>
               </span>
               <span className="flex items-center gap-3 shrink-0">
@@ -86,7 +94,23 @@ export default function PaiementsSousTraitantPanel({
 
       <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3">
         <label className="flex flex-col gap-1 text-sm font-medium">
-          Montant {paiements.length === 0 ? "de l'acompte" : "de la situation"}
+          Payé à
+          <select
+            required
+            value={sousTraitantId}
+            onChange={(e) => setSousTraitantId(e.target.value)}
+            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface w-52"
+          >
+            <option value="">Sélectionner…</option>
+            {sousTraitants.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.nom}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Montant
           <input
             required
             type="number"

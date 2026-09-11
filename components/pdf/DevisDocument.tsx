@@ -11,6 +11,8 @@ export interface DevisDocumentData {
   entreprise: string;
   clientNom: string | null;
   clientAdresse: string | null;
+  clientEmail: string | null;
+  clientTelephone: string | null;
   dateDevis: Date;
   validiteJours: number | null;
   tauxTVA: number;
@@ -53,20 +55,26 @@ export default function DevisDocument({
   const dateLimite = devis.validiteJours
     ? new Date(devis.dateDevis.getTime() + devis.validiteJours * 86_400_000)
     : null;
-  const coordonneesEntreprise = [info.adresse, info.telephone, info.email, info.siret && `SIRET ${info.siret}`]
+  const coordonneesEntreprise = [info.adresse, info.telephone].filter(Boolean).join("\n");
+  const infosLegales = [
+    info.formeJuridique,
+    info.siren && `N° SIREN ${info.siren}`,
+    info.tvaIntracom && `N° TVA ${info.tvaIntracom}`,
+  ]
     .filter(Boolean)
-    .join("\n");
+    .join(" — ");
 
   const styles = StyleSheet.create({
     page: { padding: 40, fontSize: 9, fontFamily: brand.policeTexte, color: "#1c1917" },
     headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 24 },
     logo: { width: 140, height: 86, objectFit: "contain" },
-    brandNom: { fontFamily: brand.policeTitre, fontSize: 20, color: brand.accent },
-    brandTagline: { fontSize: 8, color: "#78716c", marginTop: 2 },
-    entrepriseInfos: { fontSize: 8, color: "#78716c", textAlign: "right", lineHeight: 1.5 },
+    entrepriseBloc: { alignItems: "flex-end" },
+    brandNom: { fontFamily: brand.policeTitre, fontSize: 16, color: brand.accent, textAlign: "right" },
+    brandTagline: { fontSize: 8, color: "#78716c", marginTop: 2, textAlign: "right" },
+    entrepriseInfos: { fontSize: 8, color: "#78716c", textAlign: "right", lineHeight: 1.5, marginTop: 3 },
+    destinataireBloc: { marginTop: 12 },
     titreDevis: { fontFamily: brand.policeTitre, fontSize: 16, color: brand.accent, marginBottom: 4 },
-    metaRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 20 },
-    metaBlock: { fontSize: 9, lineHeight: 1.6 },
+    metaBlock: { fontSize: 9, lineHeight: 1.6, marginBottom: 20 },
     metaLabel: { color: "#78716c" },
     clientBlock: {
       borderWidth: 1,
@@ -124,56 +132,59 @@ export default function DevisDocument({
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerRow}>
-          {logoDataUri ? (
+          {logoDataUri && (
             // eslint-disable-next-line jsx-a11y/alt-text -- react-pdf's Image, not an HTML <img>
             <Image src={logoDataUri} style={styles.logo} />
-          ) : (
-            <View>
-              <Text style={styles.brandNom}>{info.nom}</Text>
-              {info.tagline && <Text style={styles.brandTagline}>{info.tagline}</Text>}
-            </View>
           )}
-          {coordonneesEntreprise && <Text style={styles.entrepriseInfos}>{coordonneesEntreprise}</Text>}
-        </View>
-
-        <Text style={styles.titreDevis}>DEVIS {devis.numero}</Text>
-
-        <View style={styles.metaRow}>
-          <View style={styles.metaBlock}>
-            <Text>
-              <Text style={styles.metaLabel}>Objet : </Text>
-              {devis.intitule}
-            </Text>
-            <Text>
-              <Text style={styles.metaLabel}>Date : </Text>
-              {format(devis.dateDevis, "d MMMM yyyy", { locale: fr })}
-            </Text>
-            {dateLimite && (
-              <Text>
-                <Text style={styles.metaLabel}>Validité jusqu&apos;au : </Text>
-                {format(dateLimite, "d MMMM yyyy", { locale: fr })}
-              </Text>
-            )}
-            {devis.chantierNom && (
-              <Text>
-                <Text style={styles.metaLabel}>Chantier : </Text>
-                {devis.chantierNom}
-              </Text>
-            )}
-            {devis.responsable && (
-              <Text>
-                <Text style={styles.metaLabel}>Responsable : </Text>
-                {devis.responsable.prenom} {devis.responsable.nom}
-                {devis.responsable.telephone && ` — ${devis.responsable.telephone}`}
-              </Text>
+          <View style={styles.entrepriseBloc}>
+            <Text style={styles.brandNom}>{info.nom}</Text>
+            {info.tagline && <Text style={styles.brandTagline}>{info.tagline}</Text>}
+            {coordonneesEntreprise && <Text style={styles.entrepriseInfos}>{coordonneesEntreprise}</Text>}
+            {(devis.clientNom || devis.clientAdresse || devis.clientEmail || devis.clientTelephone) && (
+              <View style={[styles.clientBlock, styles.destinataireBloc]}>
+                <Text style={styles.clientTitre}>Destinataire</Text>
+                {devis.clientNom && <Text>{devis.clientNom}</Text>}
+                {devis.clientAdresse && <Text>{devis.clientAdresse}</Text>}
+                {devis.clientEmail && <Text>{devis.clientEmail}</Text>}
+                {devis.clientTelephone && <Text>{devis.clientTelephone}</Text>}
+              </View>
             )}
           </View>
-          {(devis.clientNom || devis.clientAdresse) && (
-            <View style={styles.clientBlock}>
-              <Text style={styles.clientTitre}>Client</Text>
-              {devis.clientNom && <Text>{devis.clientNom}</Text>}
-              {devis.clientAdresse && <Text>{devis.clientAdresse}</Text>}
-            </View>
+        </View>
+
+        <Text style={styles.titreDevis}>DEVIS</Text>
+
+        <View style={styles.metaBlock}>
+          <Text>
+            <Text style={styles.metaLabel}>Numéro : </Text>
+            {devis.numero}
+          </Text>
+          <Text>
+            <Text style={styles.metaLabel}>Date d&apos;émission : </Text>
+            {format(devis.dateDevis, "d MMMM yyyy", { locale: fr })}
+          </Text>
+          {dateLimite && (
+            <Text>
+              <Text style={styles.metaLabel}>Date de validité : </Text>
+              {format(dateLimite, "d MMMM yyyy", { locale: fr })}
+            </Text>
+          )}
+          <Text>
+            <Text style={styles.metaLabel}>Devis : </Text>
+            {devis.intitule}
+          </Text>
+          {devis.chantierNom && (
+            <Text>
+              <Text style={styles.metaLabel}>Chantier : </Text>
+              {devis.chantierNom}
+            </Text>
+          )}
+          {devis.responsable && (
+            <Text>
+              <Text style={styles.metaLabel}>Responsable : </Text>
+              {devis.responsable.prenom} {devis.responsable.nom}
+              {devis.responsable.telephone && ` — ${devis.responsable.telephone}`}
+            </Text>
           )}
         </View>
 
@@ -231,7 +242,7 @@ export default function DevisDocument({
         )}
 
         <Text style={styles.footer} fixed>
-          {[info.nom, info.adresse, info.siret && `SIRET ${info.siret}`].filter(Boolean).join(" — ")}
+          {[info.nom, infosLegales].filter(Boolean).join(" — ")}
         </Text>
       </Page>
     </Document>

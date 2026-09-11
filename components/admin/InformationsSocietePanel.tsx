@@ -13,6 +13,7 @@ interface EntrepriseRow {
   email: string | null;
   siret: string | null;
   tvaIntracom: string | null;
+  formeJuridique: string | null;
   logoPath: string | null;
 }
 

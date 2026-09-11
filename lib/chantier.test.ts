@@ -45,9 +45,9 @@ const chantierBase: ChantierAvecRelations = {
 describe("calculerPaiementsSousTraitant", () => {
   it("libelle le premier paiement 'Acompte' et les suivants 'Situation N', triés par date", () => {
     const resultat = calculerPaiementsSousTraitant([
-      { id: "p3", chantierId: "c1", montant: 1000, dateAjout: d(2026, 3, 1) },
-      { id: "p1", chantierId: "c1", montant: 5000, dateAjout: d(2026, 1, 1) },
-      { id: "p2", chantierId: "c1", montant: 2000, dateAjout: d(2026, 2, 1) },
+      { id: "p3", chantierId: "c1", sousTraitantId: "st1", sousTraitant: { nom: "Plomberie Dupont" }, montant: 1000, dateAjout: d(2026, 3, 1) },
+      { id: "p1", chantierId: "c1", sousTraitantId: "st1", sousTraitant: { nom: "Plomberie Dupont" }, montant: 5000, dateAjout: d(2026, 1, 1) },
+      { id: "p2", chantierId: "c1", sousTraitantId: "st1", sousTraitant: { nom: "Plomberie Dupont" }, montant: 2000, dateAjout: d(2026, 2, 1) },
     ]);
     expect(resultat.map((p) => ({ id: p.id, libelle: p.libelle }))).toEqual([
       { id: "p1", libelle: "Acompte" },
@@ -62,9 +62,22 @@ describe("calculerPaiementsSousTraitant", () => {
 
   it("un seul paiement est l'Acompte", () => {
     const resultat = calculerPaiementsSousTraitant([
-      { id: "p1", chantierId: "c1", montant: 5000, dateAjout: d(2026, 1, 1) },
+      { id: "p1", chantierId: "c1", sousTraitantId: "st1", sousTraitant: { nom: "Plomberie Dupont" }, montant: 5000, dateAjout: d(2026, 1, 1) },
     ]);
     expect(resultat[0].libelle).toBe("Acompte");
+  });
+
+  it("numérote séparément l'acompte/les situations de chaque sous-traitant", () => {
+    const resultat = calculerPaiementsSousTraitant([
+      { id: "p1", chantierId: "c1", sousTraitantId: "st1", sousTraitant: { nom: "Plomberie Dupont" }, montant: 5000, dateAjout: d(2026, 1, 1) },
+      { id: "p2", chantierId: "c1", sousTraitantId: "st2", sousTraitant: { nom: "Électricité Martin" }, montant: 3000, dateAjout: d(2026, 1, 15) },
+      { id: "p3", chantierId: "c1", sousTraitantId: "st1", sousTraitant: { nom: "Plomberie Dupont" }, montant: 2000, dateAjout: d(2026, 2, 1) },
+    ]);
+    expect(resultat.map((p) => ({ id: p.id, libelle: p.libelle, sousTraitantNom: p.sousTraitantNom }))).toEqual([
+      { id: "p1", libelle: "Acompte", sousTraitantNom: "Plomberie Dupont" },
+      { id: "p2", libelle: "Acompte", sousTraitantNom: "Électricité Martin" },
+      { id: "p3", libelle: "Situation 1", sousTraitantNom: "Plomberie Dupont" },
+    ]);
   });
 });
 

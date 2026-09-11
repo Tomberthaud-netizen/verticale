@@ -239,7 +239,11 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
   const financesSousTraitant = (
     <section className="flex flex-col gap-3">
       <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Paiements sous-traitant</h2>
-      <PaiementsSousTraitantPanel chantierId={calcule.id} paiements={calcule.paiementsSousTraitant} />
+      <PaiementsSousTraitantPanel
+        chantierId={calcule.id}
+        paiements={calcule.paiementsSousTraitant}
+        sousTraitants={sousTraitants}
+      />
     </section>
   );
 

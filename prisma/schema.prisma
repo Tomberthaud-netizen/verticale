@@ -65,41 +65,41 @@ enum ConfianceReference {
 }
 
 model Chantier {
-  id         String   @id @default(cuid())
-  nom        String
+  id                  String    @id @default(cuid())
+  nom                 String
   // Nullable : un chantier provisoire (importé, ou créé via la saisie rapide "3 champs" en
   // attendant sa complétion) n'a pas encore de date de démarrage — voir estChantierComplet()
   // dans lib/chantier.ts, qui exclut ces chantiers du calendrier tant qu'elle est absente.
-  dateDebut  DateTime?
+  dateDebut           DateTime?
   // Modèle de rénovation (libellé "Équipe affectée" à l'origine) : texte libre saisi à la
   // création, idéalement le nom d'un ModeleRenovation du catalogue (Administration › Modèles de
   // rénovation) pour permettre le calcul automatique du montant suggéré (voir lib/chantier.ts).
-  equipe     String   @default("")
-  adresse    String   @default("")
+  equipe              String    @default("")
+  adresse             String    @default("")
   // Coordonnées de `adresse`, résolues via lib/geocodage.ts (OpenStreetMap Nominatim) à la
   // création/modification de l'adresse — un échec de résolution (adresse introuvable, service
   // indisponible…) ne bloque jamais l'enregistrement : reste null, la carte ignore ce chantier.
-  latitude   Float?
-  longitude  Float?
+  latitude            Float?
+  longitude           Float?
   // Détails d'accès au logement, facultatifs, verrouillés à l'affichage une fois enregistrés
   // (bouton "Modifier" dédié sur la fiche chantier) pour éviter une modification accidentelle.
-  etage           String?
-  porte           String?
-  codes           String? @db.Text
-  emplacementCles String? @db.Text
-  surfaceM2     Float    @default(0)
-  nombrePieces  Int?
+  etage               String?
+  porte               String?
+  codes               String?   @db.Text
+  emplacementCles     String?   @db.Text
+  surfaceM2           Float     @default(0)
+  nombrePieces        Int?
   // Id du projet Giraffe360 d'origine, pour les chantiers provisoires créés par le webhook
   // d'import — permet d'éviter un doublon si Giraffe360 renvoie deux fois la même notification
   // (contrainte unique : la 2e création échoue proprement plutôt que de dupliquer le chantier).
-  giraffe360ProjectId String? @unique
-  description   String?  @db.Text
-  entreprise String   @default("VERTICALE")
+  giraffe360ProjectId String?   @unique
+  description         String?   @db.Text
+  entreprise          String    @default("VERTICALE")
   // Retiré manuellement de la carte du Calendrier Global (bouton "VENDU"/"Fin de chantier",
   // affiché une fois le chantier terminé) — n'affecte que l'affichage sur la carte, rien d'autre.
-  retireCarte Boolean @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  retireCarte         Boolean   @default(false)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   // Informations financières, toutes facultatives. prixChantier n'est pas stocké : il est
   // dérivé de la somme des lignes financières manuelles et des devis liés (voir lib/chantier.ts).
@@ -114,16 +114,16 @@ model Chantier {
   // Sous-traitant affecté, distinct du champ "equipe" (texte libre, équipe interne).
   sousTraitantId String?
 
-  phases            Phase[]
-  datesImportantes  DateImportante[]
-  retards           Retard[]
-  alertes           Alerte[]
-  photos            Photo[]
-  devis             Devis[]
-  lignesFinancieres LigneFinanciereChantier[]
-  factures          Facture[]
+  phases                Phase[]
+  datesImportantes      DateImportante[]
+  retards               Retard[]
+  alertes               Alerte[]
+  photos                Photo[]
+  devis                 Devis[]
+  lignesFinancieres     LigneFinanciereChantier[]
+  factures              Facture[]
   paiementsSousTraitant PaiementSousTraitant[]
-  sousTraitant      SousTraitant?              @relation(fields: [sousTraitantId], references: [id], onDelete: SetNull)
+  sousTraitant          SousTraitant?             @relation(fields: [sousTraitantId], references: [id], onDelete: SetNull)
 
   @@index([sousTraitantId])
 }
@@ -132,14 +132,19 @@ model Chantier {
 /// stocké : il est dérivé du rang (voir lib/chantier.ts) — "Acompte" pour le premier paiement,
 /// "Situation N" pour les suivants, triés par date d'ajout.
 model PaiementSousTraitant {
-  id         String   @id @default(cuid())
-  chantierId String
-  montant    Float
-  dateAjout  DateTime @default(now())
+  id             String   @id @default(cuid())
+  chantierId     String
+  // Sous-traitant réellement payé — indépendant du sousTraitantId "principal" du chantier, pour
+  // couvrir le cas où plusieurs sous-traitants différents interviennent sur un même chantier.
+  sousTraitantId String
+  montant        Float
+  dateAjout      DateTime @default(now())
 
-  chantier Chantier @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  chantier     Chantier     @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  sousTraitant SousTraitant @relation(fields: [sousTraitantId], references: [id], onDelete: Restrict)
 
   @@index([chantierId])
+  @@index([sousTraitantId])
 }
 
 model Phase {
@@ -210,27 +215,28 @@ model Photo {
 }
 
 model Devis {
-  id            String   @id @default(cuid())
-  numero        String   @unique
-  intitule      String
-  entreprise    String   @default("VERTICALE")
-  chantierId    String?
-  clientNom     String?
-  clientAdresse String?  @db.Text
-  clientEmail   String?
-  dateDevis     DateTime @default(now())
-  validiteJours Int?
-  tauxTVA       Float    @default(20)
-  remiseHT      Float    @default(0)
-  notes         String?  @db.Text
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(cuid())
+  numero          String   @unique
+  intitule        String
+  entreprise      String   @default("VERTICALE")
+  chantierId      String?
+  clientNom       String?
+  clientAdresse   String?  @db.Text
+  clientEmail     String?
+  clientTelephone String?
+  dateDevis       DateTime @default(now())
+  validiteJours   Int?
+  tauxTVA         Float    @default(20)
+  remiseHT        Float    @default(0)
+  notes           String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   // Suivi commercial ("Affaire"), tous facultatifs.
   statutAffaire       StatutAffaire @default(BROUILLON)
   responsableId       String?
   prochaineActionDate DateTime?
-  prochaineActionNote String?   @db.Text
+  prochaineActionNote String?       @db.Text
 
   // Validation : une fois figé, le contenu du devis (lignes, client, montants...) ne peut
   // plus être modifié. Seuls le suivi d'affaire et le lien chantier restent éditables.
@@ -248,11 +254,11 @@ model Devis {
   dureeJoursOuvres        Int?
 
   // Coût de revient interne (jamais affiché au client), pour suivre la marge réelle.
-  coutMateriauxHT   Float?
-  coutHonorairesHT  Float?
+  coutMateriauxHT  Float?
+  coutHonorairesHT Float?
 
-  chantier    Chantier?         @relation(fields: [chantierId], references: [id], onDelete: SetNull)
-  responsable Personne?         @relation(fields: [responsableId], references: [id], onDelete: SetNull)
+  chantier    Chantier?        @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  responsable Personne?        @relation(fields: [responsableId], references: [id], onDelete: SetNull)
   lignes      LigneDevis[]
   evenements  EvenementDevis[]
   factures    Facture[]
@@ -265,7 +271,7 @@ model EvenementDevis {
   id        String             @id @default(cuid())
   devisId   String
   type      TypeEvenementDevis
-  contenu   String   @db.Text
+  contenu   String             @db.Text
   date      DateTime           @default(now())
   createdAt DateTime           @default(now())
 
@@ -275,7 +281,7 @@ model EvenementDevis {
 }
 
 model LigneDevis {
-  id           String @id @default(cuid())
+  id           String  @id @default(cuid())
   devisId      String
   designation  String
   unite        String?
@@ -322,11 +328,11 @@ model DureeTypeTravaux {
 /// contenir le `nom` d'une entrée de ce catalogue, pour permettre à lib/chantier.ts de calculer un
 /// montant de rénovation suggéré (coûtMoyenM2 × surfaceM2) sur l'onglet Finances de la fiche chantier.
 model ModeleRenovation {
-  id           String   @id @default(cuid())
-  nom          String   @unique
-  coutMoyenM2  Float?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String   @id @default(cuid())
+  nom         String   @unique
+  coutMoyenM2 Float?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 
 /// Prix de référence extraits des devis de sous-traitants historiques (dossier Devis/), utilisés
@@ -384,41 +390,43 @@ model LigneFinanciereChantier {
 }
 
 model Personne {
-  id             String   @id @default(cuid())
-  nom            String
-  prenom         String
-  email          String   @unique
-  telephone      String?
-  motDePasseHash String
-  estAdmin       Boolean  @default(false)
+  id                String   @id @default(cuid())
+  nom               String
+  prenom            String
+  email             String   @unique
+  telephone         String?
+  motDePasseHash    String
+  estAdmin          Boolean  @default(false)
   /// Administrateur principal : ses droits admin ne peuvent jamais lui être retirés, et lui seul
   /// peut retirer les droits admin d'un autre compte ou supprimer un compte admin. Au plus une
   /// personne à true (imposé côté application, cf. app/personnesActions.ts).
   estAdminPrincipal Boolean  @default(false)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
-  acces           AccesPersonne[]
+  acces            AccesPersonne[]
   accesSousOnglets AccesSousOngletPersonne[]
   devisResponsable Devis[]
-  connexions      Connexion[]
+  connexions       Connexion[]
 }
 
 /// Coordonnées légales + logo d'une entreprise (VERTICALE ou CB2B), gérées depuis
 /// Administration › Informations société. `code` correspond aux valeurs de constants/entreprises.ts.
 model Entreprise {
-  code        String   @id
-  nom         String
-  tagline     String?
-  adresse     String?
-  codePostal  String?
-  ville       String?
-  telephone   String?
-  email       String?
-  siret       String?
-  tvaIntracom String?
-  logoPath    String?
-  updatedAt   DateTime @updatedAt
+  code           String   @id
+  nom            String
+  tagline        String?
+  adresse        String?
+  codePostal     String?
+  ville          String?
+  telephone      String?
+  email          String?
+  siret          String?
+  tvaIntracom    String?
+  // Forme juridique (SARL, SAS, EURL, ...), affichée en bas de page des devis PDF.
+  formeJuridique String?
+  logoPath       String?
+  updatedAt      DateTime @updatedAt
 }
 
 /// Une connexion (login) enregistrée pour l'onglet Administration › Connexions. `sessionId`
@@ -546,22 +554,22 @@ model FournisseurType {
 }
 
 model Facture {
-  id            String        @id @default(cuid())
-  numero        String        @unique
-  entreprise    String        @default("VERTICALE")
-  devisId       String?
-  chantierId    String?
-  clientNom     String?
-  clientAdresse String?       @db.Text
-  montantHT     Float
+  id                String        @id @default(cuid())
+  numero            String        @unique
+  entreprise        String        @default("VERTICALE")
+  devisId           String?
+  chantierId        String?
+  clientNom         String?
+  clientAdresse     String?       @db.Text
+  montantHT         Float
   coutRealisationHT Float?
-  tauxTVA       Float         @default(20)
-  dateFacture   DateTime      @default(now())
-  dateEcheance  DateTime?
-  statut        StatutFacture @default(EMISE)
-  notes         String?       @db.Text
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
+  tauxTVA           Float         @default(20)
+  dateFacture       DateTime      @default(now())
+  dateEcheance      DateTime?
+  statut            StatutFacture @default(EMISE)
+  notes             String?       @db.Text
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 
   devis     Devis?     @relation(fields: [devisId], references: [id], onDelete: SetNull)
   chantier  Chantier?  @relation(fields: [chantierId], references: [id], onDelete: SetNull)
@@ -604,6 +612,7 @@ model SousTraitant {
 
   typesTravaux SousTraitantType[]
   chantiers    Chantier[]
+  paiements    PaiementSousTraitant[]
 
   @@index([entreprise])
 }

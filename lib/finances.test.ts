@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   calculerBeneficePrevisionnel,
   calculerCoutReel,
+  calculerFraisNotaire,
   calculerMargePourcentage,
   calculerPrixChantier,
   estEcheancePaiementDepassee,
@@ -18,18 +19,29 @@ describe("calculerPrixChantier", () => {
   });
 });
 
+describe("calculerFraisNotaire", () => {
+  it("retourne null si le prix d'achat est manquant", () => {
+    expect(calculerFraisNotaire(null)).toBeNull();
+    expect(calculerFraisNotaire(undefined)).toBeNull();
+  });
+
+  it("calcule 2,5 % du prix d'achat", () => {
+    expect(calculerFraisNotaire(150000)).toBe(3750);
+  });
+});
+
 describe("calculerCoutReel", () => {
   it("retourne null si rien n'est renseigné", () => {
     expect(calculerCoutReel(null, null)).toBeNull();
     expect(calculerCoutReel(undefined, undefined)).toBeNull();
   });
 
-  it("additionne prix d'achat et prix du chantier quand les deux sont renseignés", () => {
-    expect(calculerCoutReel(150000, 45000)).toBe(195000);
+  it("additionne prix d'achat, frais de notaire (2,5 %) et prix du chantier quand les deux premiers sont renseignés", () => {
+    expect(calculerCoutReel(150000, 45000)).toBe(198750);
   });
 
   it("traite la valeur manquante comme 0 quand une seule est renseignée", () => {
-    expect(calculerCoutReel(150000, null)).toBe(150000);
+    expect(calculerCoutReel(150000, null)).toBe(153750);
     expect(calculerCoutReel(null, 45000)).toBe(45000);
   });
 });

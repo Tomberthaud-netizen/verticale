@@ -20,6 +20,7 @@ export interface InformationsSocieteInput {
   email?: string;
   siret?: string;
   tvaIntracom?: string;
+  formeJuridique?: string;
 }
 
 /** Crée ou met à jour les coordonnées légales d'une entreprise (Administration › Informations société). */
@@ -40,6 +41,7 @@ export async function modifierInformationsSociete(code: Entreprise, data: Inform
       email: data.email?.trim() || null,
       siret: data.siret?.trim() || null,
       tvaIntracom: data.tvaIntracom?.trim() || null,
+      formeJuridique: data.formeJuridique?.trim() || null,
     },
     create: {
       code,
@@ -52,6 +54,7 @@ export async function modifierInformationsSociete(code: Entreprise, data: Inform
       email: data.email?.trim() || null,
       siret: data.siret?.trim() || null,
       tvaIntracom: data.tvaIntracom?.trim() || null,
+      formeJuridique: data.formeJuridique?.trim() || null,
     },
   });
   revalidatePath("/administration");

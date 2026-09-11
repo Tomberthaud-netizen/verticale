@@ -17,7 +17,7 @@ export function getChantiers(entreprise?: Entreprise) {
       photos: { select: { id: true, chantierId: true, nomFichier: true, dateAjout: true } },
       devis: { include: { lignes: true } },
       lignesFinancieres: { orderBy: { createdAt: "asc" } },
-      paiementsSousTraitant: true,
+      paiementsSousTraitant: { include: { sousTraitant: { select: { nom: true } } } },
     },
     orderBy: { dateDebut: "asc" },
   });
@@ -37,7 +37,10 @@ export function getChantier(id: string) {
       },
       devis: { include: { lignes: true } },
       lignesFinancieres: { orderBy: { createdAt: "asc" } },
-      paiementsSousTraitant: { orderBy: { dateAjout: "asc" } },
+      paiementsSousTraitant: {
+        orderBy: { dateAjout: "asc" },
+        include: { sousTraitant: { select: { nom: true } } },
+      },
       sousTraitant: { select: { id: true, nom: true } },
     },
   });

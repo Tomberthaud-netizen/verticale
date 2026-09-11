@@ -9,7 +9,7 @@ import {
   modifierFinances,
   supprimerLigneFinanciere,
 } from "@/app/actions";
-import { calculerBeneficePrevisionnel, calculerCoutReel, formaterMontant } from "@/lib/finances";
+import { calculerBeneficePrevisionnel, calculerCoutReel, calculerFraisNotaire, formaterMontant } from "@/lib/finances";
 import type { CaseFinanciereChantier } from "@/lib/chantier";
 
 interface FinancesFormProps {
@@ -60,6 +60,7 @@ export default function FinancesForm({
 
   const prixAchatNum = versNombre(prixAchat);
   const prixRenteNum = versNombre(prixRevente);
+  const fraisNotaire = calculerFraisNotaire(prixAchatNum);
   const coutReel = calculerCoutReel(prixAchatNum, prixChantier);
   const beneficePrevisionnel = calculerBeneficePrevisionnel(prixRenteNum, coutReel);
 
@@ -142,7 +143,7 @@ export default function FinancesForm({
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <div className="grid sm:grid-cols-2 gap-4">
+        <div className="grid sm:grid-cols-3 gap-4">
           <label className="flex flex-col gap-1 text-sm font-medium">
             Prix d&apos;achat du bien
             <input
@@ -155,8 +156,15 @@ export default function FinancesForm({
               className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
             />
           </label>
+          <div className="flex flex-col gap-1 text-sm font-medium">
+            Frais de notaire
+            <div className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background text-muted">
+              {formaterMontant(fraisNotaire)}
+            </div>
+            <span className="text-xs text-muted font-normal">2,5 % du prix d&apos;achat</span>
+          </div>
           <label className="flex flex-col gap-1 text-sm font-medium">
-            Prix de revente
+            Prix de vente
             <input
               type="number"
               min={0}
@@ -189,7 +197,7 @@ export default function FinancesForm({
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[180px]">
           <p className="text-sm text-muted font-medium">Coût Réel</p>
           <p className="text-2xl font-semibold mt-1">{formaterMontant(coutReel)}</p>
-          <p className="text-xs text-muted mt-1">Prix d&apos;achat + prix du chantier</p>
+          <p className="text-xs text-muted mt-1">Prix d&apos;achat + frais de notaire + prix du chantier</p>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[180px]">
           <p className="text-sm text-muted font-medium">Bénéfice prévisionnel</p>
@@ -200,13 +208,13 @@ export default function FinancesForm({
           >
             {formaterMontant(beneficePrevisionnel)}
           </p>
-          <p className="text-xs text-muted mt-1">Prix de revente − Coût Réel</p>
+          <p className="text-xs text-muted mt-1">Prix de vente − Coût Réel</p>
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold">Cases du prix du chantier</h3>
+          <h3 className="text-sm font-semibold">Montant Travaux</h3>
           <Link
             href={`/devis/nouveau?chantierId=${chantierId}`}
             className="text-sm font-medium text-foreground underline underline-offset-2"

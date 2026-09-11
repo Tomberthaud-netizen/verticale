@@ -15,6 +15,7 @@ interface InfoExistante {
   email: string | null;
   siret: string | null;
   tvaIntracom: string | null;
+  formeJuridique: string | null;
 }
 
 export default function InformationsSocieteForm({
@@ -34,6 +35,7 @@ export default function InformationsSocieteForm({
   const [email, setEmail] = useState(info?.email ?? "");
   const [siret, setSiret] = useState(info?.siret ?? "");
   const [tvaIntracom, setTvaIntracom] = useState(info?.tvaIntracom ?? "");
+  const [formeJuridique, setFormeJuridique] = useState(info?.formeJuridique ?? "");
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
 
@@ -52,6 +54,7 @@ export default function InformationsSocieteForm({
         email: email || undefined,
         siret: siret || undefined,
         tvaIntracom: tvaIntracom || undefined,
+        formeJuridique: formeJuridique || undefined,
       });
       router.refresh();
     } catch (err) {
@@ -120,6 +123,15 @@ export default function InformationsSocieteForm({
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+        />
+      </label>
+      <label className="flex flex-col gap-1 text-sm font-medium">
+        Type de société
+        <input
+          value={formeJuridique}
+          onChange={(e) => setFormeJuridique(e.target.value)}
+          placeholder="Ex : SARL, SAS, EURL…"
           className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
         />
       </label>

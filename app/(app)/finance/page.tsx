@@ -157,7 +157,7 @@ export default async function FinancePage() {
           <thead>
             <tr className="text-left text-muted border-b border-border">
               <th className="py-1.5 pr-2 font-medium">Chantier</th>
-              <th className="py-1.5 pr-2 font-medium text-right">Prix revente</th>
+              <th className="py-1.5 pr-2 font-medium text-right">Prix vente</th>
               <th className="py-1.5 pr-2 font-medium text-right">Coût réel</th>
               <th className="py-1.5 pr-0 font-medium text-right">Bénéfice</th>
             </tr>
@@ -184,7 +184,7 @@ export default async function FinancePage() {
           </tbody>
         </table>
       ) : (
-        <p className="text-muted">Aucun chantier avec prix d&apos;achat et de revente renseignés.</p>
+        <p className="text-muted">Aucun chantier avec prix d&apos;achat et de vente renseignés.</p>
       )}
       <div className="flex justify-between items-center pt-2 border-t border-border font-semibold">
         <span>Total</span>
@@ -439,7 +439,7 @@ export default async function FinancePage() {
                   <Link href={`/chantiers/${c.id}`} className="font-medium underline">
                     {c.nom}
                   </Link>
-                  <p className="text-sm text-muted">Prix de revente : {formaterMontant(c.prixRevente)}</p>
+                  <p className="text-sm text-muted">Prix de vente : {formaterMontant(c.prixRevente)}</p>
                 </div>
                 <div className="flex items-end gap-2">
                   <DateLimitePaiementInput cible="chantier" id={c.id} dateLimitePaiement={c.dateLimitePaiement} />
@@ -449,7 +449,7 @@ export default async function FinancePage() {
             ))}
           </div>
         ) : (
-          <p className="text-sm text-muted">Aucun chantier avec un prix de revente renseigné.</p>
+          <p className="text-sm text-muted">Aucun chantier avec un prix de vente renseigné.</p>
         )}
       </section>
     </div>

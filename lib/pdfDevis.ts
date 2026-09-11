@@ -12,6 +12,8 @@ export interface DevisPourPdf {
   entreprise: string;
   clientNom: string | null;
   clientAdresse: string | null;
+  clientEmail: string | null;
+  clientTelephone: string | null;
   dateDevis: Date;
   validiteJours: number | null;
   tauxTVA: number;
@@ -62,6 +64,9 @@ export async function genererPdfDevisBuffer(devis: DevisPourPdf): Promise<Buffer
         telephone: entrepriseDb.telephone ?? undefined,
         email: entrepriseDb.email ?? undefined,
         siret: entrepriseDb.siret ?? undefined,
+        siren: entrepriseDb.siret ? entrepriseDb.siret.slice(0, 9) : undefined,
+        tvaIntracom: entrepriseDb.tvaIntracom ?? undefined,
+        formeJuridique: entrepriseDb.formeJuridique ?? undefined,
       }
     : infoDefaut;
 
@@ -74,6 +79,8 @@ export async function genererPdfDevisBuffer(devis: DevisPourPdf): Promise<Buffer
       entreprise: devis.entreprise,
       clientNom: devis.clientNom,
       clientAdresse: devis.clientAdresse,
+      clientEmail: devis.clientEmail,
+      clientTelephone: devis.clientTelephone,
       dateDevis: devis.dateDevis,
       validiteJours: devis.validiteJours,
       tauxTVA: devis.tauxTVA,

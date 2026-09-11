@@ -73,12 +73,13 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
         <ChronologieDevis devisId={devis.id} evenements={devis.evenements} />
       </section>
 
-      {(devis.clientNom || devis.clientAdresse || devis.clientEmail) && (
+      {(devis.clientNom || devis.clientAdresse || devis.clientEmail || devis.clientTelephone) && (
         <section className="text-sm">
           <h2 className="text-sm font-semibold text-muted uppercase tracking-wide mb-1">Client</h2>
           <p>{devis.clientNom}</p>
           <p className="text-muted">{devis.clientAdresse}</p>
           {devis.clientEmail && <p className="text-muted">{devis.clientEmail}</p>}
+          {devis.clientTelephone && <p className="text-muted">{devis.clientTelephone}</p>}
         </section>
       )}
 

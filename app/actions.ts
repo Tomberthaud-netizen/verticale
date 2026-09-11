@@ -418,6 +418,7 @@ export interface CreateDevisInput {
   clientNom?: string;
   clientAdresse?: string;
   clientEmail?: string;
+  clientTelephone?: string;
   dateDevis: string;
   validiteJours?: number | null;
   tauxTVA: number;
@@ -491,6 +492,7 @@ export async function createDevis(data: CreateDevisInput) {
         clientNom: data.clientNom?.trim() || null,
         clientAdresse: data.clientAdresse?.trim() || null,
         clientEmail: data.clientEmail?.trim() || null,
+        clientTelephone: data.clientTelephone?.trim() || null,
         dateDevis: new Date(data.dateDevis),
         validiteJours: data.validiteJours ?? null,
         tauxTVA: data.tauxTVA,
@@ -538,6 +540,7 @@ export async function modifierDevis(devisId: string, data: CreateDevisInput) {
         clientNom: data.clientNom?.trim() || null,
         clientAdresse: data.clientAdresse?.trim() || null,
         clientEmail: data.clientEmail?.trim() || null,
+        clientTelephone: data.clientTelephone?.trim() || null,
         dateDevis: new Date(data.dateDevis),
         validiteJours: data.validiteJours ?? null,
         tauxTVA: data.tauxTVA,
@@ -947,14 +950,23 @@ export async function supprimerLigneFinanciere(chantierId: string, ligneId: stri
   revalidatePath("/");
 }
 
-/** Enregistre un montant versé au sous-traitant, daté d'aujourd'hui. Son libellé ("Acompte" /
- * "Situation N") est dérivé de son rang à l'affichage, pas stocké (voir lib/chantier.ts). */
-export async function ajouterPaiementSousTraitant(chantierId: string, montant: number) {
-  await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
+/** Enregistre un montant versé à un sous-traitant, daté d'aujourd'hui. Son libellé ("Acompte" /
+ * "Situation N") est dérivé de son rang parmi les paiements de ce même sous-traitant à
+ * l'affichage, pas stocké (voir lib/chantier.ts). */
+export async function ajouterPaiementSousTraitant(chantierId: string, sousTraitantId: string, montant: number) {
+  const entreprise = await entrepriseDuChantier(chantierId);
+  await requireAcces("VUE_ENSEMBLE", entreprise);
+  if (!sousTraitantId) {
+    throw new Error("Sélectionnez le sous-traitant à qui ce paiement est destiné.");
+  }
   if (!Number.isFinite(montant) || montant <= 0) {
     throw new Error("Le montant doit être un nombre positif.");
   }
-  await prisma.paiementSousTraitant.create({ data: { chantierId, montant } });
+  const sousTraitant = await prisma.sousTraitant.findUnique({ where: { id: sousTraitantId }, select: { entreprise: true } });
+  if (!sousTraitant || sousTraitant.entreprise !== entreprise) {
+    throw new Error("Ce sous-traitant n'appartient pas à cette entreprise.");
+  }
+  await prisma.paiementSousTraitant.create({ data: { chantierId, sousTraitantId, montant } });
   revalidatePath(`/chantiers/${chantierId}`);
 }
 

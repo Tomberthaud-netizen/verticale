@@ -5,6 +5,10 @@ export interface EntrepriseInfo {
   telephone?: string;
   email?: string;
   siret?: string;
+  /** 9 premiers chiffres du SIRET (identifiant de l'entreprise, sans l'établissement). */
+  siren?: string;
+  tvaIntracom?: string;
+  formeJuridique?: string;
 }
 
 /**

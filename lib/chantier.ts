@@ -35,7 +35,7 @@ export type ChantierAvecRelations = Chantier & {
   photos: PhotoResume[];
   devis: (Devis & { lignes: LigneDevis[] })[];
   lignesFinancieres: LigneFinanciereChantier[];
-  paiementsSousTraitant: PaiementSousTraitant[];
+  paiementsSousTraitant: (PaiementSousTraitant & { sousTraitant: { nom: string } })[];
 };
 
 /** Un chantier dont estChantierComplet() a été vérifié true : dateDebut y est garanti non-null. */
@@ -54,19 +54,30 @@ export interface PaiementSousTraitantCalcule {
   libelle: string;
   montant: number;
   dateAjout: Date;
+  sousTraitantId: string;
+  sousTraitantNom: string;
 }
 
-/** Libellé dérivé du rang du paiement, trié par date d'ajout : "Acompte" pour le premier,
- * "Situation N" pour les suivants. */
-export function calculerPaiementsSousTraitant(paiements: PaiementSousTraitant[]): PaiementSousTraitantCalcule[] {
-  return [...paiements]
-    .sort((a, b) => a.dateAjout.getTime() - b.dateAjout.getTime())
-    .map((p, i) => ({
+/** Libellé dérivé du rang du paiement PARMI CEUX DU MÊME SOUS-TRAITANT, trié par date d'ajout :
+ * "Acompte" pour le premier, "Situation N" pour les suivants — plusieurs sous-traitants
+ * différents peuvent intervenir sur un même chantier, chacun avec son propre acompte. */
+export function calculerPaiementsSousTraitant(
+  paiements: (PaiementSousTraitant & { sousTraitant: { nom: string } })[]
+): PaiementSousTraitantCalcule[] {
+  const tries = [...paiements].sort((a, b) => a.dateAjout.getTime() - b.dateAjout.getTime());
+  const rangParSousTraitant = new Map<string, number>();
+  return tries.map((p) => {
+    const rang = rangParSousTraitant.get(p.sousTraitantId) ?? 0;
+    rangParSousTraitant.set(p.sousTraitantId, rang + 1);
+    return {
       id: p.id,
-      libelle: i === 0 ? "Acompte" : `Situation ${i}`,
+      libelle: rang === 0 ? "Acompte" : `Situation ${rang}`,
       montant: p.montant,
       dateAjout: p.dateAjout,
-    }));
+      sousTraitantId: p.sousTraitantId,
+      sousTraitantNom: p.sousTraitant.nom,
+    };
+  });
 }
 
 export interface ChantierCalcule {

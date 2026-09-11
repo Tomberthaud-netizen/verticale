@@ -21,6 +21,8 @@ interface LigneDraft {
   completionsOuvertes: boolean;
 }
 
+const UNITES = ["M²", "ML", "U", "Ens"] as const;
+
 let nextKey = 1;
 
 function ligneVide(): LigneDraft {
@@ -46,6 +48,7 @@ export interface DevisExistant {
   clientNom: string | null;
   clientAdresse: string | null;
   clientEmail: string | null;
+  clientTelephone: string | null;
   dateDevis: Date;
   validiteJours: number | null;
   tauxTVA: number;
@@ -77,6 +80,7 @@ export default function DevisForm({
   const [clientNom, setClientNom] = useState(devisExistant?.clientNom ?? "");
   const [clientAdresse, setClientAdresse] = useState(devisExistant?.clientAdresse ?? "");
   const [clientEmail, setClientEmail] = useState(devisExistant?.clientEmail ?? "");
+  const [clientTelephone, setClientTelephone] = useState(devisExistant?.clientTelephone ?? "");
   const [dateDevis, setDateDevis] = useState(() =>
     format(devisExistant?.dateDevis ?? new Date(), "yyyy-MM-dd")
   );
@@ -172,6 +176,7 @@ export default function DevisForm({
         clientNom: clientNom || undefined,
         clientAdresse: clientAdresse || undefined,
         clientEmail: clientEmail || undefined,
+        clientTelephone: clientTelephone || undefined,
         dateDevis,
         validiteJours: validiteJours.trim() === "" ? null : Number(validiteJours),
         tauxTVA: tauxTVANum,
@@ -264,6 +269,16 @@ export default function DevisForm({
             placeholder="Ex : client@exemple.fr"
           />
           <span className="text-xs text-muted font-normal">Utilisé pour l&apos;envoi du devis par mail une fois validé.</span>
+        </label>
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Téléphone du client
+          <input
+            type="tel"
+            value={clientTelephone}
+            onChange={(e) => setClientTelephone(e.target.value)}
+            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+            placeholder="Ex : 06 12 34 56 78"
+          />
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
           Adresse exacte {!chantierId && <span className="text-red-600">*</span>}
@@ -388,13 +403,21 @@ export default function DevisForm({
                       );
                     })()}
                 </div>
-                <input
-                  type="text"
+                <select
                   value={ligne.unite}
                   onChange={(e) => modifierLigne(ligne.key, { unite: e.target.value })}
-                  placeholder="Unité"
                   className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
-                />
+                >
+                  <option value="">Unité</option>
+                  {ligne.unite && !(UNITES as readonly string[]).includes(ligne.unite) && (
+                    <option value={ligne.unite}>{ligne.unite}</option>
+                  )}
+                  {UNITES.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </select>
                 <input
                   type="number"
                   required

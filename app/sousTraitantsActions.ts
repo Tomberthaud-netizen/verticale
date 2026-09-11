@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAcces } from "@/lib/authContext";
 import { getEntrepriseActive } from "@/lib/entrepriseActive";
@@ -77,6 +78,13 @@ export async function modifierSousTraitant(sousTraitantId: string, data: SousTra
 
 export async function supprimerSousTraitant(sousTraitantId: string) {
   await requireAcces("SOUS_TRAITANTS", await entrepriseDuSousTraitant(sousTraitantId));
-  await prisma.sousTraitant.delete({ where: { id: sousTraitantId } });
+  try {
+    await prisma.sousTraitant.delete({ where: { id: sousTraitantId } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
+      throw new Error("Ce sous-traitant a des paiements enregistrés sur un chantier : impossible de le supprimer.");
+    }
+    throw err;
+  }
   revalidatePath("/sous-traitants");
 }

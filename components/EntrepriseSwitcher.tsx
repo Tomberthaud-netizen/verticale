@@ -43,6 +43,7 @@ export default function EntrepriseSwitcher({
           alt="Verticale"
           width={320}
           height={196}
+          unoptimized={!!logos.VERTICALE}
           className="h-10 sm:h-16 md:h-24 w-auto object-contain"
           priority
         />
@@ -58,7 +59,14 @@ export default function EntrepriseSwitcher({
             actif === "CB2B" ? "opacity-100" : "opacity-30 hover:opacity-70"
           }`}
         >
-          <Image src={logos.CB2B} alt="CB2B" width={320} height={196} className="h-16 sm:h-24 w-auto object-contain" />
+          <Image
+            src={logos.CB2B}
+            alt="CB2B"
+            width={320}
+            height={196}
+            unoptimized
+            className="h-16 sm:h-24 w-auto object-contain"
+          />
         </button>
       ) : (
         <button

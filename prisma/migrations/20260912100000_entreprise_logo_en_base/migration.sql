@@ -1,0 +1,2 @@
+ALTER TABLE `Entreprise` ADD COLUMN `logoDonnees` LONGBLOB NULL;
+ALTER TABLE `Entreprise` ADD COLUMN `logoTypeMime` VARCHAR(191) NULL;

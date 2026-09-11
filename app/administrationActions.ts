@@ -1,8 +1,5 @@
 "use server";
 
-import { mkdir, unlink, writeFile } from "node:fs/promises";
-import path from "node:path";
-import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/authContext";
@@ -67,39 +64,32 @@ const EXTENSIONS_AUTORISEES: Record<string, string> = {
   "image/svg+xml": ".svg",
 };
 
-/** Envoie/remplace le logo d'une entreprise, affiché dans le sélecteur d'entreprise et les PDF. */
+/** Envoie/remplace le logo d'une entreprise, affiché dans le sélecteur d'entreprise et les PDF.
+ * Stocké en base (logoDonnees), pas sur le disque du serveur — voir le commentaire sur
+ * Entreprise.logoPath dans prisma/schema.prisma. */
 export async function uploaderLogo(code: Entreprise, formData: FormData) {
   await requireAdmin();
   const fichier = formData.get("logo");
   if (!(fichier instanceof File) || fichier.size === 0) {
     throw new Error("Sélectionnez un logo à envoyer.");
   }
-  const extension = EXTENSIONS_AUTORISEES[fichier.type];
-  if (!extension) {
+  if (!EXTENSIONS_AUTORISEES[fichier.type]) {
     throw new Error("Format d'image non pris en charge (JPEG, PNG, WEBP ou SVG).");
   }
 
-  const dossier = path.join(process.cwd(), "public", "uploads", "logos");
-  await mkdir(dossier, { recursive: true });
-  const nomFichier = `${code.toLowerCase()}-${randomUUID()}${extension}`;
   const octets = Buffer.from(await fichier.arrayBuffer());
-  await writeFile(path.join(dossier, nomFichier), octets);
-  const cheminFichier = `/uploads/logos/${nomFichier}`;
-
-  const existant = await prisma.entreprise.findUnique({ where: { code }, select: { logoPath: true, nom: true } });
+  const existant = await prisma.entreprise.findUnique({ where: { code }, select: { nom: true } });
   await prisma.entreprise.upsert({
     where: { code },
-    update: { logoPath: cheminFichier },
-    create: { code, nom: existant?.nom || code, logoPath: cheminFichier },
+    update: { logoPath: `/api/logos/${code}`, logoDonnees: octets, logoTypeMime: fichier.type },
+    create: {
+      code,
+      nom: existant?.nom || code,
+      logoPath: `/api/logos/${code}`,
+      logoDonnees: octets,
+      logoTypeMime: fichier.type,
+    },
   });
-
-  if (existant?.logoPath) {
-    try {
-      await unlink(path.join(process.cwd(), "public", existant.logoPath));
-    } catch {
-      // l'ancien fichier a peut-être déjà été supprimé
-    }
-  }
 
   revalidatePath("/administration");
   revalidatePath("/", "layout");

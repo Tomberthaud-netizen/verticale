@@ -425,8 +425,14 @@ model Entreprise {
   tvaIntracom    String?
   // Forme juridique (SARL, SAS, EURL, ...), affichée en bas de page des devis PDF.
   formeJuridique String?
-  logoPath       String?
-  updatedAt      DateTime @updatedAt
+  // Le logo lui-même est stocké en base (logoDonnees), pas sur le disque du serveur : comme pour
+  // Photo.donnees, l'hébergement Node.js recrée un dossier neuf à chaque déploiement, donc un
+  // fichier écrit dans public/uploads y disparaîtrait au déploiement suivant. logoPath ne stocke
+  // qu'une URL stable (/api/logos/{code}) servie par app/api/logos/[code]/route.ts.
+  logoPath     String?
+  logoDonnees  Bytes?   @db.LongBlob
+  logoTypeMime String?
+  updatedAt    DateTime @updatedAt
 }
 
 /// Une connexion (login) enregistrée pour l'onglet Administration › Connexions. `sessionId`

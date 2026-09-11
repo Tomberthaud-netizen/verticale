@@ -8,7 +8,14 @@ export default function LogoUploadForm({ code, logoPath }: { code: Entreprise; l
     <div className="flex items-center gap-4">
       <div className="w-20 h-20 rounded-md border border-border bg-background flex items-center justify-center overflow-hidden shrink-0">
         {logoPath ? (
-          <Image src={logoPath} alt={`Logo ${code}`} width={80} height={80} className="w-full h-full object-contain" />
+          <Image
+            src={logoPath}
+            alt={`Logo ${code}`}
+            width={80}
+            height={80}
+            unoptimized
+            className="w-full h-full object-contain"
+          />
         ) : (
           <span className="text-xs text-muted">Aucun logo</span>
         )}

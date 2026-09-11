@@ -24,30 +24,21 @@ export interface DevisPourPdf {
   responsable: { nom: string; prenom: string; telephone: string | null } | null;
 }
 
-const EXTENSIONS_DATA_URI: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".svg": "image/svg+xml",
-};
-
 /** Génère le PDF d'un devis (même rendu que le téléchargement manuel), réutilisable côté serveur. */
 export async function genererPdfDevisBuffer(devis: DevisPourPdf): Promise<Buffer> {
   const entrepriseDb = await prisma.entreprise.findUnique({ where: { code: devis.entreprise } });
 
   let logoDataUri: string | null = null;
-  const cheminLogo = entrepriseDb?.logoPath
-    ? path.join(process.cwd(), "public", entrepriseDb.logoPath)
-    : devis.entreprise === "VERTICALE"
-      ? path.join(process.cwd(), "public", "logo.jpg")
-      : null;
-  if (cheminLogo) {
+  if (entrepriseDb?.logoDonnees && entrepriseDb.logoTypeMime) {
+    // Logo envoyé depuis Administration › Informations société, stocké en base (voir le
+    // commentaire sur Entreprise.logoPath dans prisma/schema.prisma).
+    logoDataUri = `data:${entrepriseDb.logoTypeMime};base64,${Buffer.from(entrepriseDb.logoDonnees).toString("base64")}`;
+  } else if (devis.entreprise === "VERTICALE") {
+    // Repli sur le logo par défaut du site, fourni dans le dépôt (jamais un upload runtime,
+    // donc pas concerné par la perte de fichiers au déploiement).
     try {
-      const buffer = await readFile(cheminLogo);
-      const extension = path.extname(cheminLogo).toLowerCase();
-      const mime = EXTENSIONS_DATA_URI[extension] ?? "image/jpeg";
-      logoDataUri = `data:${mime};base64,${buffer.toString("base64")}`;
+      const buffer = await readFile(path.join(process.cwd(), "public", "logo.jpg"));
+      logoDataUri = `data:image/jpeg;base64,${buffer.toString("base64")}`;
     } catch {
       logoDataUri = null;
     }

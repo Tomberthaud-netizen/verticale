@@ -65,7 +65,7 @@ export default function EntrepriseSwitcher({
             width={320}
             height={196}
             unoptimized
-            className="h-16 sm:h-24 w-auto object-contain"
+            className="h-10 sm:h-16 md:h-24 w-auto object-contain"
           />
         </button>
       ) : (

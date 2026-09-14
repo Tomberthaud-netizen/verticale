@@ -28,6 +28,10 @@ const HAUTEUR_AGRANDIE = 600;
 // invalidateSize() doit être appelé manuellement une fois la transition terminée.
 const DUREE_TRANSITION_MS = 200;
 
+// Centre par défaut de la carte (Paris), toujours utilisé au chargement quels que soient les
+// chantiers affichés — pas de recentrage automatique sur leur moyenne.
+const CENTRE_PARIS: [number, number] = [48.8566, 2.3522];
+
 export default function CarteChantiers({ chantiers }: { chantiers: ChantierCarte[] }) {
   const [agrandie, setAgrandie] = useState(false);
   const mapRef = useRef<LeafletMap | null>(null);
@@ -39,11 +43,6 @@ export default function CarteChantiers({ chantiers }: { chantiers: ChantierCarte
 
   if (chantiers.length === 0) return null;
 
-  const centre: [number, number] = [
-    chantiers.reduce((s, c) => s + c.latitude, 0) / chantiers.length,
-    chantiers.reduce((s, c) => s + c.longitude, 0) / chantiers.length,
-  ];
-
   return (
     <div className="relative rounded-lg overflow-hidden border border-border">
       <div
@@ -52,7 +51,13 @@ export default function CarteChantiers({ chantiers }: { chantiers: ChantierCarte
           transition: `height ${DUREE_TRANSITION_MS}ms ease`,
         }}
       >
-        <MapContainer ref={mapRef} center={centre} zoom={11} scrollWheelZoom={false} style={{ height: "100%", width: "100%" }}>
+        <MapContainer
+          ref={mapRef}
+          center={CENTRE_PARIS}
+          zoom={11}
+          scrollWheelZoom={false}
+          style={{ height: "100%", width: "100%" }}
+        >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">Contributeurs OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

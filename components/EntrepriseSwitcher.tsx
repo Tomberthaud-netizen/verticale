@@ -34,7 +34,7 @@ export default function EntrepriseSwitcher({
         onClick={() => choisir("VERTICALE")}
         disabled={enCours}
         title="Afficher VERTICALE"
-        className={`flex items-center rounded-md transition-opacity disabled:cursor-wait ${
+        className={`flex items-center justify-center rounded-md transition-opacity disabled:cursor-wait h-10 w-20 sm:h-16 sm:w-32 md:h-24 md:w-48 ${
           actif === "VERTICALE" ? "opacity-100" : "opacity-30 hover:opacity-70"
         }`}
       >
@@ -44,7 +44,7 @@ export default function EntrepriseSwitcher({
           width={320}
           height={196}
           unoptimized={!!logos.VERTICALE}
-          className="h-10 sm:h-16 md:h-24 w-auto object-contain"
+          className="max-h-full max-w-full w-auto h-auto object-contain"
           priority
         />
       </button>
@@ -55,7 +55,7 @@ export default function EntrepriseSwitcher({
           onClick={() => choisir("CB2B")}
           disabled={enCours}
           title="Afficher CB2B"
-          className={`flex items-center rounded-md transition-opacity disabled:cursor-wait ${
+          className={`flex items-center justify-center rounded-md transition-opacity disabled:cursor-wait h-10 w-20 sm:h-16 sm:w-32 md:h-24 md:w-48 ${
             actif === "CB2B" ? "opacity-100" : "opacity-30 hover:opacity-70"
           }`}
         >
@@ -65,7 +65,7 @@ export default function EntrepriseSwitcher({
             width={320}
             height={196}
             unoptimized
-            className="h-10 sm:h-16 md:h-24 w-auto object-contain"
+            className="max-h-full max-w-full w-auto h-auto object-contain"
           />
         </button>
       ) : (

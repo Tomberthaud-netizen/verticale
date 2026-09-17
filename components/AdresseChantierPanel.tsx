@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { modifierAdresseChantier } from "@/app/actions";
+import { modifierAdresseChantier, relancerGeocodageChantier } from "@/app/actions";
 import AdressePopup from "@/components/AdressePopup";
 
 /** Icône réglages/roue crantée classique (type Réglages iOS), utilisée pour le bouton "Modifier". */
@@ -30,6 +30,10 @@ interface AdresseChantierPanelProps {
   porte: string | null;
   codes: string | null;
   emplacementCles: string | null;
+  /** Absents = adresse jamais localisée (ou introuvable) : le chantier n'apparaît pas sur la
+   * carte du Calendrier Global. On le signale ici plutôt que de laisser ça silencieux. */
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export default function AdresseChantierPanel({
@@ -39,6 +43,8 @@ export default function AdresseChantierPanel({
   porte,
   codes,
   emplacementCles,
+  latitude,
+  longitude,
 }: AdresseChantierPanelProps) {
   const router = useRouter();
   // Édition forcée tant qu'aucune adresse n'a jamais été enregistrée : rien à verrouiller.
@@ -50,6 +56,21 @@ export default function AdresseChantierPanel({
   const [valeurCles, setValeurCles] = useState(emplacementCles ?? "");
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
+  const [erreurLocalisation, setErreurLocalisation] = useState<string | null>(null);
+  const [localisationEnCours, setLocalisationEnCours] = useState(false);
+
+  async function reessayerLocalisation() {
+    setErreurLocalisation(null);
+    setLocalisationEnCours(true);
+    try {
+      await relancerGeocodageChantier(chantierId);
+      router.refresh();
+    } catch (err) {
+      setErreurLocalisation(err instanceof Error ? err.message : "Une erreur est survenue.");
+    } finally {
+      setLocalisationEnCours(false);
+    }
+  }
 
   function annuler() {
     setValeurAdresse(adresse);
@@ -98,6 +119,20 @@ export default function AdresseChantierPanel({
           </button>
         </div>
         <AdressePopup adresse={adresse} />
+        {adresse && (latitude == null || longitude == null) && (
+          <div className="flex flex-wrap items-center gap-2 text-sm border border-amber-200 bg-amber-50 text-amber-800 rounded-md px-3 py-2">
+            <span>Adresse non localisée : ce chantier n&apos;apparaît pas sur la carte du Calendrier Global.</span>
+            <button
+              type="button"
+              onClick={reessayerLocalisation}
+              disabled={localisationEnCours}
+              className="shrink-0 font-medium underline underline-offset-2 disabled:opacity-50"
+            >
+              {localisationEnCours ? "Localisation…" : "Réessayer la localisation"}
+            </button>
+            {erreurLocalisation && <span className="w-full text-red-600">{erreurLocalisation}</span>}
+          </div>
+        )}
         <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div>
             <dt className="text-xs font-medium text-muted">Étage</dt>

@@ -270,6 +270,8 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
         porte={calcule.porte}
         codes={calcule.codes}
         emplacementCles={calcule.emplacementCles}
+        latitude={calcule.latitude}
+        longitude={calcule.longitude}
       />
     </section>
   ) : undefined;

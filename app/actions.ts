@@ -263,6 +263,34 @@ export async function modifierAdresseChantier(chantierId: string, data: AdresseC
   revalidatePath("/calendrier");
 }
 
+/** Relance uniquement le géocodage de l'adresse déjà enregistrée, sans rien modifier d'autre —
+ * pour les chantiers restés sans coordonnées (invisibles sur la carte du Calendrier Global)
+ * malgré les tentatives automatiques de geocoderAdresse. */
+export async function relancerGeocodageChantier(chantierId: string) {
+  const chantier = await prisma.chantier.findUnique({
+    where: { id: chantierId },
+    select: { adresse: true, entreprise: true },
+  });
+  if (!chantier) throw new Error("Chantier introuvable.");
+  await requireAcces("VUE_ENSEMBLE", chantier.entreprise as Entreprise);
+  if (!chantier.adresse.trim()) {
+    throw new Error("Renseignez d'abord une adresse exacte.");
+  }
+  const coordonnees = await geocoderAdresse(chantier.adresse);
+  if (!coordonnees) {
+    throw new Error(
+      "Adresse introuvable. Vérifiez qu'elle est complète (numéro, rue, code postal, ville) puis réessayez."
+    );
+  }
+  await prisma.chantier.update({
+    where: { id: chantierId },
+    data: { latitude: coordonnees.latitude, longitude: coordonnees.longitude },
+  });
+  revalidatePath(`/chantiers/${chantierId}`);
+  revalidatePath("/calendrier");
+  revalidatePath("/");
+}
+
 export async function affecterSousTraitant(chantierId: string, sousTraitantId: string | null) {
   const entreprise = await entrepriseDuChantier(chantierId);
   await requireAcces("VUE_ENSEMBLE", entreprise);

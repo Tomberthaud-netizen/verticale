@@ -124,6 +124,35 @@ export async function createChantier(data: CreateChantierInput) {
   return { id: chantier.id };
 }
 
+/** Remplace intégralement les phases d'un chantier existant (durées, types, ordre) — les dates
+ * de chaque phase ne sont jamais stockées, elles sont recalculées à l'affichage à partir de
+ * dateDebut + ces phases + les retards (voir calculerPlanningChantier dans lib/dates.ts), donc
+ * ce remplacement suffit à répercuter tout changement de durée sur le planning. */
+export async function modifierPhasesChantier(chantierId: string, phases: CreateChantierPhaseInput[]) {
+  await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
+  if (phases.length === 0) {
+    throw new Error("Le chantier doit avoir au moins une phase.");
+  }
+  validerPhases(phases);
+
+  await prisma.$transaction([
+    prisma.phase.deleteMany({ where: { chantierId } }),
+    prisma.phase.createMany({
+      data: phases.map((p, i) => ({
+        chantierId,
+        type: p.type,
+        nom: p.type === "PERSONNALISEE" ? p.nom?.trim() || null : null,
+        nombreJoursOuvres: p.nombreJoursOuvres,
+        ordre: i + 1,
+      })),
+    }),
+  ]);
+
+  revalidatePath("/");
+  revalidatePath("/calendrier");
+  revalidatePath(`/chantiers/${chantierId}`);
+}
+
 /**
  * Chantier provisoire : seuls nom, surface et nombre de pièces sont connus (import externe,
  * ex. Giraffe360 — pas encore branché, voir DEPLOIEMENT/plan). Pas de date de démarrage, pas

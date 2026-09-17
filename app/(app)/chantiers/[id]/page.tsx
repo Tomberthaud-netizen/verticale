@@ -25,6 +25,7 @@ import AgendaSyncButtons from "@/components/AgendaSyncButtons";
 import SupprimerChantierButton from "@/components/SupprimerChantierButton";
 import ChantierOnglets from "@/components/ChantierOnglets";
 import FinancesForm from "@/components/FinancesForm";
+import PhasesChantierPanel from "@/components/PhasesChantierPanel";
 import AdresseChantierPanel from "@/components/AdresseChantierPanel";
 import PaiementsSousTraitantPanel from "@/components/PaiementsSousTraitantPanel";
 import SousOnglets from "@/components/SousOnglets";
@@ -111,6 +112,10 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
           rows={[{ id: calcule.id, label: calcule.nom, segments }]}
           reperes={reperes}
           titre={calcule.nom}
+        />
+        <PhasesChantierPanel
+          chantierId={calcule.id}
+          phases={calcule.phases.map((p) => ({ id: p.id, type: p.type, nom: p.nom ?? null, nombreJoursOuvres: p.nombreJoursOuvres }))}
         />
       </section>
 

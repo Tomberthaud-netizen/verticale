@@ -31,10 +31,16 @@ export default function CalendrierGlobalImpression({
   const [cible, setCible] = useState<CibleImpression>("calendrier");
 
   function imprimer() {
+    // window.print() ne bloque pas dans Chrome (voir PrintButton) : le titre n'est restauré
+    // qu'à la fermeture de l'aperçu, sinon Chrome lit le titre déjà remis à zéro.
     const titreOriginal = document.title;
     document.title = `${PREFIXE_NOM_FICHIER[cible]} – ${formaterDatePourNomFichier()} – ${entreprise}`;
+    const restaurer = () => {
+      document.title = titreOriginal;
+      window.removeEventListener("afterprint", restaurer);
+    };
+    window.addEventListener("afterprint", restaurer);
     window.print();
-    document.title = titreOriginal;
   }
 
   return (

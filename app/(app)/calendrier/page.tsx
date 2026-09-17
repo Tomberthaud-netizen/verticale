@@ -4,6 +4,7 @@ import { calculerEtatChantier, calculerFinPeriode } from "@/lib/dates";
 import { construireEchelleJoursOuvres, construireSegments, resumerChantier } from "@/lib/gantt";
 import { PHASE_COLORS, RETARD_COLOR, DEVIS_PROJETE_COLOR } from "@/constants/colors";
 import { requireAcces } from "@/lib/authContext";
+import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import type { Entreprise } from "@/constants/entreprises";
 import CalendrierGlobal from "@/components/Gantt/CalendrierGlobal";
 import CarteChantiersChargeur from "@/components/Gantt/CarteChantiersChargeur";
@@ -12,7 +13,11 @@ import AgendaSyncButtons from "@/components/AgendaSyncButtons";
 
 export default async function CalendrierPage() {
   await requireAcces("CALENDRIER");
-  const [chantiers, devisPlanifies] = await Promise.all([getChantiers(), getDevisPlanifiesSansChantier()]);
+  const [chantiers, devisPlanifies, entreprise] = await Promise.all([
+    getChantiers(),
+    getDevisPlanifiesSansChantier(),
+    getEntrepriseActive(),
+  ]);
 
   // Un chantier provisoire (importé, pas encore complété) n'a pas de date de démarrage : il
   // reste absent du calendrier tant qu'il n'a pas été complété (voir estChantierComplet).
@@ -117,6 +122,7 @@ export default async function CalendrierPage() {
       carte={chantiersCarte.length > 0 ? <CarteChantiersChargeur chantiers={chantiersCarte} /> : null}
       agendaSync={<AgendaSyncButtons feedPath="/api/ics" label="tous les chantiers" />}
       calendrier={<CalendrierGlobal echelle={echelle} chantiers={rows} />}
+      entreprise={entreprise}
     />
   );
 }

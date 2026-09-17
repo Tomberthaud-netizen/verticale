@@ -301,7 +301,7 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
             )}
           </div>
           <div className="flex items-center gap-2">
-            <PrintButton />
+            <PrintButton entreprise={calcule.entreprise as Entreprise} />
             <SupprimerChantierButton chantierId={calcule.id} nomChantier={calcule.nom} />
           </div>
         </div>

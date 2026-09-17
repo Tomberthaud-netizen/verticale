@@ -1,8 +1,17 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import type { Entreprise } from "@/constants/entreprises";
+import { formaterDatePourNomFichier } from "@/lib/pdfFormat";
 
 type CibleImpression = "calendrier" | "carte";
+
+/** Voir PrintButton : nom de fichier suggéré par le navigateur = document.title au moment de
+ * l'impression. "Planning GLOBAL" pour bien le distinguer du "Planning" d'un chantier seul. */
+const PREFIXE_NOM_FICHIER: Record<CibleImpression, string> = {
+  calendrier: "Planning GLOBAL",
+  carte: "Carte",
+};
 
 export default function CalendrierGlobalImpression({
   titre,
@@ -10,14 +19,23 @@ export default function CalendrierGlobalImpression({
   carte,
   agendaSync,
   calendrier,
+  entreprise,
 }: {
   titre: ReactNode;
   legende: ReactNode;
   carte: ReactNode;
   agendaSync: ReactNode;
   calendrier: ReactNode;
+  entreprise: Entreprise;
 }) {
   const [cible, setCible] = useState<CibleImpression>("calendrier");
+
+  function imprimer() {
+    const titreOriginal = document.title;
+    document.title = `${PREFIXE_NOM_FICHIER[cible]} – ${formaterDatePourNomFichier()} – ${entreprise}`;
+    window.print();
+    document.title = titreOriginal;
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -42,7 +60,7 @@ export default function CalendrierGlobalImpression({
           )}
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={imprimer}
             className="shrink-0 rounded-md border border-border text-sm font-medium px-3 py-1.5 hover:bg-background transition-colors"
           >
             Imprimer / Export PDF

@@ -46,6 +46,7 @@ export default function CarteChantiers({ chantiers }: { chantiers: ChantierCarte
   return (
     <div className="relative rounded-lg overflow-hidden border border-border">
       <div
+        className="carte-chantiers-hauteur"
         style={{
           height: agrandie ? HAUTEUR_AGRANDIE : HAUTEUR_REDUITE,
           transition: `height ${DUREE_TRANSITION_MS}ms ease`,

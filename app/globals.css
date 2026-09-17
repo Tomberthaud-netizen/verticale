@@ -40,4 +40,10 @@ body {
     color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
+
+  /* Carte du Calendrier Global : occupe toute la page imprimée (A3 paysage ci-dessus), quelle
+     que soit la hauteur réduite/agrandie choisie à l'écran (voir CarteChantiers.tsx). */
+  .carte-chantiers-hauteur {
+    height: 250mm !important;
+  }
 }

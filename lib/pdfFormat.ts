@@ -15,3 +15,13 @@ export function formaterEurosPdf(montant: number, options?: Intl.NumberFormatOpt
   );
   return formatte.replace(ESPACES_INSECABLES, " ");
 }
+
+/**
+ * Formate une date en "JJ-MM-AAAA" pour un nom de fichier (le "/" du format fr-FR habituel est
+ * interdit dans un nom de fichier Windows).
+ */
+export function formaterDatePourNomFichier(date: Date = new Date()): string {
+  const jour = String(date.getDate()).padStart(2, "0");
+  const mois = String(date.getMonth() + 1).padStart(2, "0");
+  return `${jour}-${mois}-${date.getFullYear()}`;
+}

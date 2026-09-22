@@ -20,6 +20,7 @@ import AlerteForm from "@/components/AlerteForm";
 import SupprimerAlerteButton from "@/components/SupprimerAlerteButton";
 import PhotoUploadForm from "@/components/PhotoUploadForm";
 import PhotoGallery from "@/components/PhotoGallery";
+import NotesPhotosPanel from "@/components/NotesPhotosPanel";
 import PrintButton from "@/components/PrintButton";
 import AgendaSyncButtons from "@/components/AgendaSyncButtons";
 import SupprimerChantierButton from "@/components/SupprimerChantierButton";
@@ -221,6 +222,7 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
         <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">Dossier photos</h2>
         <PhotoGallery chantierId={calcule.id} photos={calcule.photos} />
         <PhotoUploadForm chantierId={calcule.id} />
+        <NotesPhotosPanel chantierId={calcule.id} notes={calcule.notesPhotos} />
       </section>
     </div>
   );

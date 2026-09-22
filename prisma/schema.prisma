@@ -87,6 +87,10 @@ model Chantier {
   porte               String?
   codes               String?   @db.Text
   emplacementCles     String?   @db.Text
+  // Notes libres affichées sous le dossier photos, visibles par toute personne ayant accès au
+  // chantier (pas de verrouillage à l'affichage comme codes/emplacementCles : simple bloc-notes
+  // partagé, modifiable à tout moment par n'importe qui ayant accès au chantier).
+  notesPhotos         String?   @db.Text
   surfaceM2           Float     @default(0)
   nombrePieces        Int?
   // Id du projet Giraffe360 d'origine, pour les chantiers provisoires créés par le webhook

@@ -13,7 +13,10 @@ const nextConfig = {
   },
   experimental: {
     serverActions: {
-      bodySizeLimit: "15mb",
+      // Le dossier photos d'un chantier accepte jusqu'à MAX_PHOTOS_PAR_ENVOI (constants/photos.ts)
+      // photos par envoi ; une photo de smartphone récent pèse couramment 3 à 6 Mo, donc 15 Mo
+      // suffisait à peine pour 2-3 photos et provoquait de longs envois/échecs silencieux au-delà.
+      bodySizeLimit: "50mb",
     },
   },
 };

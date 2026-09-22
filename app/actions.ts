@@ -17,6 +17,7 @@ import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import { envoyerEmail } from "@/lib/mail";
 import { remplacerPlaceholders } from "@/lib/emailTemplate";
 import { geocoderAdresse } from "@/lib/geocodage";
+import { MAX_PHOTOS_PAR_ENVOI } from "@/constants/photos";
 import { creerChantierProvisoireEnBase } from "@/lib/chantierProvisoireImport";
 
 /** Entreprise propriétaire d'un chantier — pour vérifier l'accès à une ressource précise. */
@@ -263,6 +264,17 @@ export async function modifierAdresseChantier(chantierId: string, data: AdresseC
   revalidatePath("/calendrier");
 }
 
+/** Bloc-notes partagé affiché sous le dossier photos — visible et modifiable par toute personne
+ * ayant accès au chantier, sans verrouillage à l'affichage (contrairement à codes/emplacementCles). */
+export async function modifierNotesPhotos(chantierId: string, notes: string) {
+  await requireAcces("VUE_ENSEMBLE", await entrepriseDuChantier(chantierId));
+  await prisma.chantier.update({
+    where: { id: chantierId },
+    data: { notesPhotos: notes.trim() || null },
+  });
+  revalidatePath(`/chantiers/${chantierId}`);
+}
+
 /** Relance uniquement le géocodage de l'adresse déjà enregistrée, sans rien modifier d'autre —
  * pour les chantiers restés sans coordonnées (invisibles sur la carte du Calendrier Global)
  * malgré les tentatives automatiques de geocoderAdresse. */
@@ -434,6 +446,9 @@ export async function ajouterPhoto(chantierId: string, formData: FormData) {
   const fichiers = formData.getAll("photo").filter((f): f is File => f instanceof File && f.size > 0);
   if (fichiers.length === 0) {
     throw new Error("Sélectionnez au moins une photo à ajouter.");
+  }
+  if (fichiers.length > MAX_PHOTOS_PAR_ENVOI) {
+    throw new Error(`Vous pouvez ajouter au maximum ${MAX_PHOTOS_PAR_ENVOI} photos à la fois.`);
   }
   for (const fichier of fichiers) {
     if (!TYPES_MIME_AUTORISES.has(fichier.type)) {

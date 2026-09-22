@@ -18,6 +18,7 @@ const chantierBase: ChantierAvecRelations = {
   porte: null,
   codes: null,
   emplacementCles: null,
+  notesPhotos: null,
   surfaceM2: 60,
   nombrePieces: 3,
   giraffe360ProjectId: null,

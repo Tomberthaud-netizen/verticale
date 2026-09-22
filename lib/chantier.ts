@@ -91,6 +91,7 @@ export interface ChantierCalcule {
   porte: string | null;
   codes: string | null;
   emplacementCles: string | null;
+  notesPhotos: string | null;
   surfaceM2: number;
   nombrePieces: number | null;
   description: string | null;
@@ -173,6 +174,7 @@ export function calculerChantier(chantier: ChantierComplet): ChantierCalcule {
     porte: chantier.porte,
     codes: chantier.codes,
     emplacementCles: chantier.emplacementCles,
+    notesPhotos: chantier.notesPhotos,
     surfaceM2: chantier.surfaceM2,
     nombrePieces: chantier.nombrePieces,
     description: chantier.description,

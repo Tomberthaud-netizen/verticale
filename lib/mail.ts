@@ -1,8 +1,8 @@
 import nodemailer from "nodemailer";
 
-let transporter: nodemailer.Transporter | null = null;
+let transporter: ReturnType<typeof nodemailer.createTransport> | null = null;
 
-function getTransporter(): nodemailer.Transporter {
+function getTransporter(): ReturnType<typeof nodemailer.createTransport> {
   if (transporter) return transporter;
 
   const host = process.env.SMTP_HOST;

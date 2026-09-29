@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { completerChantier, createChantier } from "@/app/actions";
+import { completerChantier, createChantier, creerChantierProvisoire } from "@/app/actions";
 import { calculerDateFinPhases, type PhaseType } from "@/lib/dates";
 import { PHASE_COLORS } from "@/constants/colors";
 
@@ -106,6 +106,36 @@ export default function ChantierForm({
 
   function modifierPhase(key: string, patch: Partial<PhaseDraft>) {
     setPhases((prev) => prev.map((p) => (p.key === key ? { ...p, ...patch } : p)));
+  }
+
+  /** Sauvegarde un chantier provisoire (nom seul obligatoire) à compléter plus tard — visible
+   * dans la section "À compléter" de l'onglet Chantiers. Ignore délibérément les autres champs
+   * du formulaire (équipe/adresse/date/phases), pas exigés à ce stade. */
+  async function mettreEnAttente() {
+    setErreur(null);
+    const nomNettoye = nom.trim();
+    if (!nomNettoye) {
+      setErreur("Le nom est obligatoire pour mettre le chantier en attente.");
+      return;
+    }
+    const surfaceM2Nombre = surfaceM2.trim() ? Number(surfaceM2) : undefined;
+    if (surfaceM2Nombre != null && !(surfaceM2Nombre > 0)) {
+      setErreur("La surface (m²) doit être un nombre positif.");
+      return;
+    }
+    const nombrePiecesNombre = nombrePieces.trim() ? Number(nombrePieces) : undefined;
+    if (nombrePiecesNombre != null && !(nombrePiecesNombre > 0 && Number.isInteger(nombrePiecesNombre))) {
+      setErreur("Le nombre de pièces doit être un entier positif.");
+      return;
+    }
+    setEnCours(true);
+    try {
+      await creerChantierProvisoire({ nom: nomNettoye, surfaceM2: surfaceM2Nombre, nombrePieces: nombrePiecesNombre });
+      router.push("/chantiers");
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
+      setEnCours(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -407,21 +437,33 @@ export default function ChantierForm({
 
       {erreur && <p className="text-sm text-red-600">{erreur}</p>}
 
-      <button
-        type="submit"
-        disabled={enCours}
-        className="self-start rounded-md bg-foreground text-background text-sm font-medium px-5 py-2.5 hover:opacity-90 transition-opacity disabled:opacity-50"
-      >
-        {chantierACompleter
-          ? enCours
-            ? "Complétion…"
-            : "Compléter le chantier"
-          : enCours
-            ? "Création…"
-            : creerDevis
-              ? "Créer le chantier et continuer vers le devis"
-              : "Créer le chantier"}
-      </button>
+      <div className="flex items-center gap-4">
+        <button
+          type="submit"
+          disabled={enCours}
+          className="self-start rounded-md bg-foreground text-background text-sm font-medium px-5 py-2.5 hover:opacity-90 transition-opacity disabled:opacity-50"
+        >
+          {chantierACompleter
+            ? enCours
+              ? "Complétion…"
+              : "Compléter le chantier"
+            : enCours
+              ? "Création…"
+              : creerDevis
+                ? "Créer le chantier et continuer vers le devis"
+                : "Créer le chantier"}
+        </button>
+        {!chantierACompleter && (
+          <button
+            type="button"
+            onClick={mettreEnAttente}
+            disabled={enCours}
+            className="text-sm font-medium text-muted hover:text-foreground underline underline-offset-2 disabled:opacity-50"
+          >
+            Mettre en attente (à compléter plus tard)
+          </button>
+        )}
+      </div>
     </form>
   );
 }

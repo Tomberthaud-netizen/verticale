@@ -2,7 +2,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { EvenementType } from "@prisma/client";
+import { Prisma, type EvenementType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { SEUILS_ALERTE_DEFAUT, type PhaseType } from "@/lib/dates";
@@ -484,6 +484,9 @@ export interface LigneDevisInput {
 }
 
 export interface CreateDevisInput {
+  /** Éditable uniquement via modifierDevis, et seulement par l'administrateur principal — voir
+   * la vérification dans modifierDevis. Ignoré par createDevis (numéro toujours auto-généré). */
+  numero?: string;
   intitule: string;
   chantierId?: string | null;
   responsableId?: string | null;
@@ -531,8 +534,8 @@ function validerDevisInput(data: CreateDevisInput) {
     if (!ligne.quantite || ligne.quantite <= 0) {
       throw new Error("Chaque ligne doit avoir une quantité positive.");
     }
-    if (ligne.prixUnitaire == null || ligne.prixUnitaire < 0) {
-      throw new Error("Chaque ligne doit avoir un prix unitaire positif ou nul.");
+    if (ligne.prixUnitaire == null) {
+      throw new Error("Chaque ligne doit avoir un prix unitaire.");
     }
   }
 }
@@ -592,7 +595,7 @@ export async function modifierDevis(devisId: string, data: CreateDevisInput) {
   const existant = await prisma.devis.findUnique({ where: { id: devisId } });
   if (!existant) throw new Error("Devis introuvable.");
   const entreprise = existant.entreprise as Entreprise;
-  await requireAcces("DEVIS", entreprise);
+  const personne = await requireAcces("DEVIS", entreprise);
   validerDevisInput(data);
   if (existant.valide) {
     throw new Error("Ce devis est validé et figé : il ne peut plus être modifié. Utilisez Création de TS ou Réédition.");
@@ -600,36 +603,51 @@ export async function modifierDevis(devisId: string, data: CreateDevisInput) {
   if (data.chantierId && (await entrepriseDuChantier(data.chantierId)) !== entreprise) {
     throw new Error("Ce chantier n'appartient pas à cette entreprise.");
   }
+  // Le numéro de devis sert de référence légale/comptable : seul l'administrateur principal peut
+  // le corriger après coup (le champ n'est même pas affiché aux autres dans DevisForm, mais on
+  // revérifie ici — jamais confiance au seul masquage côté client).
+  const numeroNettoye = data.numero?.trim();
+  if (numeroNettoye && numeroNettoye !== existant.numero && !personne.estAdminPrincipal) {
+    throw new Error("Seul l'administrateur principal peut modifier le numéro de devis.");
+  }
 
-  await prisma.$transaction(async (tx) => {
-    await tx.ligneDevis.deleteMany({ where: { devisId } });
-    await tx.devis.update({
-      where: { id: devisId },
-      data: {
-        intitule: data.intitule.trim(),
-        chantierId: data.chantierId || null,
-        responsableId: data.responsableId || null,
-        clientNom: data.clientNom?.trim() || null,
-        clientAdresse: data.clientAdresse?.trim() || null,
-        clientEmail: data.clientEmail?.trim() || null,
-        clientTelephone: data.clientTelephone?.trim() || null,
-        dateDevis: new Date(data.dateDevis),
-        validiteJours: data.validiteJours ?? null,
-        tauxTVA: data.tauxTVA,
-        remiseHT: data.remiseHT ?? 0,
-        notes: data.notes?.trim() || null,
-        lignes: {
-          create: data.lignes.map((l, i) => ({
-            designation: l.designation.trim(),
-            unite: l.unite?.trim() || null,
-            quantite: l.quantite,
-            prixUnitaire: l.prixUnitaire,
-            ordre: i + 1,
-          })),
+  try {
+    await prisma.$transaction(async (tx) => {
+      await tx.ligneDevis.deleteMany({ where: { devisId } });
+      await tx.devis.update({
+        where: { id: devisId },
+        data: {
+          ...(numeroNettoye && personne.estAdminPrincipal ? { numero: numeroNettoye } : {}),
+          intitule: data.intitule.trim(),
+          chantierId: data.chantierId || null,
+          responsableId: data.responsableId || null,
+          clientNom: data.clientNom?.trim() || null,
+          clientAdresse: data.clientAdresse?.trim() || null,
+          clientEmail: data.clientEmail?.trim() || null,
+          clientTelephone: data.clientTelephone?.trim() || null,
+          dateDevis: new Date(data.dateDevis),
+          validiteJours: data.validiteJours ?? null,
+          tauxTVA: data.tauxTVA,
+          remiseHT: data.remiseHT ?? 0,
+          notes: data.notes?.trim() || null,
+          lignes: {
+            create: data.lignes.map((l, i) => ({
+              designation: l.designation.trim(),
+              unite: l.unite?.trim() || null,
+              quantite: l.quantite,
+              prixUnitaire: l.prixUnitaire,
+              ordre: i + 1,
+            })),
+          },
         },
-      },
+      });
     });
-  });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new Error("Ce numéro de devis est déjà utilisé par un autre devis.");
+    }
+    throw err;
+  }
 
   revalidatePath("/devis");
   revalidatePath(`/devis/${devisId}`);

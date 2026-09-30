@@ -9,7 +9,7 @@ export default async function ModifierDevisPage({ params }: PageProps<"/devis/[i
   const { id } = await params;
   const devis = await getDevis(id);
   if (!devis) notFound();
-  await requireAcces("DEVIS", devis.entreprise as Entreprise);
+  const personne = await requireAcces("DEVIS", devis.entreprise as Entreprise);
   if (devis.valide) redirect(`/devis/${id}`);
   const [designationsExistantes, personnes] = await Promise.all([getDesignationsExistantes(), getPersonnesNoms()]);
 
@@ -17,7 +17,12 @@ export default async function ModifierDevisPage({ params }: PageProps<"/devis/[i
     <div className="flex flex-col gap-6">
       <RetourButton />
       <h1 className="text-2xl font-semibold">Modifier le devis</h1>
-      <DevisForm designationsExistantes={designationsExistantes} devisExistant={devis} personnes={personnes} />
+      <DevisForm
+        designationsExistantes={designationsExistantes}
+        devisExistant={devis}
+        personnes={personnes}
+        estAdminPrincipal={personne.estAdminPrincipal}
+      />
     </div>
   );
 }

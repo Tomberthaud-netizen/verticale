@@ -41,6 +41,7 @@ function ligneVide(): LigneDraft {
 
 export interface DevisExistant {
   id: string;
+  numero: string;
   intitule: string;
   entreprise: string;
   chantierId: string | null;
@@ -64,6 +65,7 @@ export default function DevisForm({
   chantierIdInitial,
   personnes = [],
   entrepriseActive,
+  estAdminPrincipal = false,
 }: {
   designationsExistantes: string[];
   devisExistant?: DevisExistant;
@@ -71,9 +73,14 @@ export default function DevisForm({
   chantierIdInitial?: string;
   personnes?: { id: string; nom: string; prenom: string }[];
   entrepriseActive?: string;
+  /** Le numéro de devis (référence légale/comptable) n'est modifiable que par l'administrateur
+   * principal — le champ est masqué pour tout le monde d'autre. */
+  estAdminPrincipal?: boolean;
 }) {
   const router = useRouter();
   const entreprise = devisExistant?.entreprise ?? entrepriseActive ?? "VERTICALE";
+  const peutModifierNumero = !!devisExistant && estAdminPrincipal;
+  const [numero, setNumero] = useState(devisExistant?.numero ?? "");
   const [intitule, setIntitule] = useState(devisExistant?.intitule ?? "");
   const [chantierId, setChantierId] = useState(devisExistant?.chantierId ?? chantierIdInitial ?? "");
   const [responsableId, setResponsableId] = useState(devisExistant?.responsableId ?? "");
@@ -170,6 +177,7 @@ export default function DevisForm({
     setEnCours(true);
     try {
       const payload = {
+        numero: peutModifierNumero ? numero || undefined : undefined,
         intitule,
         chantierId: chantierId || undefined,
         responsableId: responsableId || undefined,
@@ -216,6 +224,21 @@ export default function DevisForm({
             {entreprise}
           </div>
         </div>
+        {peutModifierNumero && (
+          <label className="flex flex-col gap-1 text-sm font-medium">
+            Numéro du devis
+            <input
+              required
+              value={numero}
+              onChange={(e) => setNumero(e.target.value)}
+              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
+              placeholder="Ex : VRT-2026-0007"
+            />
+            <span className="text-xs text-muted font-normal">
+              Réservé à l&apos;administrateur principal — doit rester unique.
+            </span>
+          </label>
+        )}
         {!devisExistant && chantiers.length > 0 && (
           <label className="flex flex-col gap-1 text-sm font-medium">
             Chantier (optionnel)
@@ -431,11 +454,11 @@ export default function DevisForm({
                 <input
                   type="number"
                   required
-                  min={0}
                   step="0.01"
                   value={ligne.prixUnitaire}
                   onChange={(e) => modifierLigne(ligne.key, { prixUnitaire: e.target.value })}
                   placeholder="PU (€)"
+                  title="Un prix unitaire négatif déduit le montant du devis (ex : matériaux payés directement par le client)"
                   className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
                 />
                 <span className="text-sm text-muted text-right tabular-nums">

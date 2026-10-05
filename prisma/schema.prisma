@@ -232,6 +232,8 @@ model Devis {
   validiteJours   Int?
   tauxTVA         Float    @default(20)
   remiseHT        Float    @default(0)
+  // Option à cocher : ajoute une colonne "Total TTC" à chaque ligne (formulaire, fiche et PDF).
+  colonneTTC      Boolean  @default(false)
   notes           String?  @db.Text
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -288,6 +290,8 @@ model LigneDevis {
   id           String  @id @default(cuid())
   devisId      String
   designation  String
+  // Précision libre affichée dans une colonne "Détail" à côté de la désignation.
+  detail       String? @db.Text
   unite        String?
   quantite     Float
   prixUnitaire Float

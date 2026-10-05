@@ -3,7 +3,14 @@ import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { getChantiersNoms, getDevis, getPersonnesNoms } from "@/lib/queries";
-import { calculerMontantTVA, calculerTotalHT, calculerTotalHTNet, calculerTotalLigne, calculerTotalTTC } from "@/lib/devis";
+import {
+  calculerMontantTVA,
+  calculerTotalHT,
+  calculerTotalHTNet,
+  calculerTotalLigne,
+  calculerTotalLigneTTC,
+  calculerTotalTTC,
+} from "@/lib/devis";
 import { formaterMontant } from "@/lib/finances";
 import SupprimerDevisButton from "@/components/SupprimerDevisButton";
 import LierChantierForm from "@/components/LierChantierForm";
@@ -90,20 +97,30 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
             <thead>
               <tr className="text-left text-muted border-b border-border">
                 <th className="py-2 pr-2 font-medium">Désignation</th>
+                <th className="py-2 pr-2 font-medium">Détail</th>
                 <th className="py-2 pr-2 font-medium">Unité</th>
                 <th className="py-2 pr-2 font-medium text-right">Quantité</th>
                 <th className="py-2 pr-2 font-medium text-right">PU</th>
-                <th className="py-2 pr-0 font-medium text-right">Total</th>
+                <th className={`py-2 font-medium text-right ${devis.colonneTTC ? "pr-2" : "pr-0"}`}>Total HT</th>
+                {devis.colonneTTC && <th className="py-2 pr-0 font-medium text-right">Total TTC</th>}
               </tr>
             </thead>
             <tbody>
               {devis.lignes.map((ligne) => (
                 <tr key={ligne.id} className="border-b border-border">
                   <td className="py-2 pr-2">{ligne.designation}</td>
+                  <td className="py-2 pr-2 text-muted whitespace-pre-wrap">{ligne.detail ?? "—"}</td>
                   <td className="py-2 pr-2 text-muted">{ligne.unite ?? "—"}</td>
                   <td className="py-2 pr-2 text-right tabular-nums">{ligne.quantite}</td>
                   <td className="py-2 pr-2 text-right tabular-nums">{formaterMontant(ligne.prixUnitaire)}</td>
-                  <td className="py-2 pr-0 text-right tabular-nums">{formaterMontant(calculerTotalLigne(ligne))}</td>
+                  <td className={`py-2 text-right tabular-nums ${devis.colonneTTC ? "pr-2" : "pr-0"}`}>
+                    {formaterMontant(calculerTotalLigne(ligne))}
+                  </td>
+                  {devis.colonneTTC && (
+                    <td className="py-2 pr-0 text-right tabular-nums">
+                      {formaterMontant(calculerTotalLigneTTC(ligne, devis.tauxTVA))}
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>

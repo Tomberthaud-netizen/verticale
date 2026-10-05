@@ -8,6 +8,11 @@ export function calculerTotalLigne(ligne: LigneDevisInput): number {
   return ligne.quantite * ligne.prixUnitaire;
 }
 
+/** Total TTC d'une ligne = total HT de la ligne × (1 + taux de TVA / 100). */
+export function calculerTotalLigneTTC(ligne: LigneDevisInput, tauxTVA: number): number {
+  return calculerTotalLigne(ligne) * (1 + tauxTVA / 100);
+}
+
 /** Total HT du devis = somme des totaux de chaque ligne. */
 export function calculerTotalHT(lignes: LigneDevisInput[]): number {
   return lignes.reduce((somme, ligne) => somme + calculerTotalLigne(ligne), 0);

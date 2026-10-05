@@ -1,7 +1,14 @@
 import { Document, Page, View, Text, Image, StyleSheet } from "@react-pdf/renderer";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { calculerMontantTVA, calculerTotalHT, calculerTotalHTNet, calculerTotalLigne, calculerTotalTTC } from "@/lib/devis";
+import {
+  calculerMontantTVA,
+  calculerTotalHT,
+  calculerTotalHTNet,
+  calculerTotalLigne,
+  calculerTotalLigneTTC,
+  calculerTotalTTC,
+} from "@/lib/devis";
 import { formaterEurosPdf } from "@/lib/pdfFormat";
 import type { EntrepriseInfo } from "@/constants/entreprisesInfo";
 
@@ -17,8 +24,9 @@ export interface DevisDocumentData {
   validiteJours: number | null;
   tauxTVA: number;
   remiseHT: number;
+  colonneTTC: boolean;
   notes: string | null;
-  lignes: { designation: string; unite: string | null; quantite: number; prixUnitaire: number }[];
+  lignes: { designation: string; detail: string | null; unite: string | null; quantite: number; prixUnitaire: number }[];
   chantierNom: string | null;
   responsable: { nom: string; prenom: string; telephone: string | null } | null;
 }
@@ -95,7 +103,8 @@ export default function DevisDocument({
       borderBottomColor: "#e7e5e4",
     },
     tableRowAlt: { backgroundColor: "#fafaf9" },
-    cellDesignation: { flex: 4 },
+    cellDesignation: { flex: 3 },
+    cellDetail: { flex: 2.4, color: "#57534e" },
     cellUnite: { flex: 1, textAlign: "center" },
     cellQuantite: { flex: 1, textAlign: "right" },
     cellPU: { flex: 1.4, textAlign: "right" },
@@ -191,18 +200,24 @@ export default function DevisDocument({
         <View style={styles.table}>
           <View style={styles.tableHeaderRow}>
             <Text style={[styles.tableHeaderCell, styles.cellDesignation]}>Désignation</Text>
+            <Text style={[styles.tableHeaderCell, styles.cellDetail]}>Détail</Text>
             <Text style={[styles.tableHeaderCell, styles.cellUnite]}>Unité</Text>
             <Text style={[styles.tableHeaderCell, styles.cellQuantite]}>Qté</Text>
             <Text style={[styles.tableHeaderCell, styles.cellPU]}>PU HT</Text>
             <Text style={[styles.tableHeaderCell, styles.cellTotal]}>Total HT</Text>
+            {devis.colonneTTC && <Text style={[styles.tableHeaderCell, styles.cellTotal]}>Total TTC</Text>}
           </View>
           {devis.lignes.map((ligne, i) => (
             <View key={i} style={i % 2 === 1 ? [styles.tableRow, styles.tableRowAlt] : [styles.tableRow]}>
               <Text style={styles.cellDesignation}>{ligne.designation}</Text>
+              <Text style={styles.cellDetail}>{ligne.detail ?? ""}</Text>
               <Text style={styles.cellUnite}>{ligne.unite ?? "—"}</Text>
               <Text style={styles.cellQuantite}>{ligne.quantite}</Text>
               <Text style={styles.cellPU}>{formaterEurosPdf(ligne.prixUnitaire)}</Text>
               <Text style={styles.cellTotal}>{formaterEurosPdf(calculerTotalLigne(ligne))}</Text>
+              {devis.colonneTTC && (
+                <Text style={styles.cellTotal}>{formaterEurosPdf(calculerTotalLigneTTC(ligne, devis.tauxTVA))}</Text>
+              )}
             </View>
           ))}
         </View>

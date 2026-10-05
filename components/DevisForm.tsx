@@ -5,13 +5,21 @@ import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { createDevis, modifierDevis, suggererPrix, type LigneDevisInput, type SuggestionPrixResult } from "@/app/actions";
-import { calculerMontantTVA, calculerTotalHT, calculerTotalHTNet, calculerTotalLigne, calculerTotalTTC } from "@/lib/devis";
+import {
+  calculerMontantTVA,
+  calculerTotalHT,
+  calculerTotalHTNet,
+  calculerTotalLigne,
+  calculerTotalLigneTTC,
+  calculerTotalTTC,
+} from "@/lib/devis";
 import { formaterMontant } from "@/lib/finances";
 import { filtrerDesignations } from "@/lib/suggestionPrix";
 
 interface LigneDraft {
   key: string;
   designation: string;
+  detail: string;
   unite: string;
   quantite: string;
   prixUnitaire: string;
@@ -29,6 +37,7 @@ function ligneVide(): LigneDraft {
   return {
     key: String(nextKey++),
     designation: "",
+    detail: "",
     unite: "",
     quantite: "1",
     prixUnitaire: "",
@@ -54,8 +63,9 @@ export interface DevisExistant {
   validiteJours: number | null;
   tauxTVA: number;
   remiseHT: number;
+  colonneTTC: boolean;
   notes: string | null;
-  lignes: { designation: string; unite: string | null; quantite: number; prixUnitaire: number }[];
+  lignes: { designation: string; detail: string | null; unite: string | null; quantite: number; prixUnitaire: number }[];
 }
 
 export default function DevisForm({
@@ -96,12 +106,14 @@ export default function DevisForm({
   );
   const [tauxTVA, setTauxTVA] = useState(String(devisExistant?.tauxTVA ?? 20));
   const [remiseHT, setRemiseHT] = useState(devisExistant?.remiseHT ? String(devisExistant.remiseHT) : "");
+  const [colonneTTC, setColonneTTC] = useState(devisExistant?.colonneTTC ?? false);
   const [notes, setNotes] = useState(devisExistant?.notes ?? "");
   const [lignes, setLignes] = useState<LigneDraft[]>(
     devisExistant && devisExistant.lignes.length > 0
       ? devisExistant.lignes.map((l) => ({
           key: String(nextKey++),
           designation: l.designation,
+          detail: l.detail ?? "",
           unite: l.unite ?? "",
           quantite: String(l.quantite),
           prixUnitaire: String(l.prixUnitaire),
@@ -119,6 +131,7 @@ export default function DevisForm({
     () =>
       lignes.map((l) => ({
         designation: l.designation,
+        detail: l.detail,
         unite: l.unite,
         quantite: Number(l.quantite) || 0,
         prixUnitaire: Number(l.prixUnitaire) || 0,
@@ -129,6 +142,10 @@ export default function DevisForm({
   const remiseHTNum = Number(remiseHT) || 0;
   const totalHT = calculerTotalHTNet(sousTotalHT, remiseHTNum);
   const tauxTVANum = Number(tauxTVA) || 0;
+  // Désignation | Détail | Unité | Qté | PU | Total HT | [Total TTC] | Retirer
+  const colonnesLigne = colonneTTC
+    ? "1.5fr 1fr 5rem 5rem 7rem 7rem 7rem auto"
+    : "1.5fr 1fr 5rem 5rem 7rem 7rem auto";
   const montantTVA = calculerMontantTVA(totalHT, tauxTVANum);
   const totalTTC = calculerTotalTTC(totalHT, montantTVA);
 
@@ -189,6 +206,7 @@ export default function DevisForm({
         validiteJours: validiteJours.trim() === "" ? null : Number(validiteJours),
         tauxTVA: tauxTVANum,
         remiseHT: remiseHTNum,
+        colonneTTC,
         notes: notes || undefined,
         lignes: lignesCalcul,
       };
@@ -206,7 +224,7 @@ export default function DevisForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-3xl">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-5xl">
       <div className="grid sm:grid-cols-2 gap-4">
         <label className="flex flex-col gap-1 text-sm font-medium">
           Intitulé du devis
@@ -351,6 +369,15 @@ export default function DevisForm({
             className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface"
           />
         </label>
+        <label className="flex items-center gap-2 text-sm font-medium sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={colonneTTC}
+            onChange={(e) => setColonneTTC(e.target.checked)}
+            className="rounded border-border"
+          />
+          Ajouter une colonne « Total TTC » sur chaque ligne
+        </label>
       </div>
 
       <label className="flex flex-col gap-1 text-sm font-medium">
@@ -378,7 +405,10 @@ export default function DevisForm({
         <div className="flex flex-col gap-2">
           {lignes.map((ligne, i) => (
             <div key={ligne.key} className="flex flex-col gap-1">
-              <div className="grid grid-cols-[1fr_5rem_5rem_7rem_7rem_auto] items-center gap-2 border border-border rounded-md p-2 bg-surface">
+              <div
+                className="grid items-center gap-2 border border-border rounded-md p-2 bg-surface"
+                style={{ gridTemplateColumns: colonnesLigne }}
+              >
                 <div className="relative min-w-0">
                   <input
                     type="text"
@@ -426,6 +456,14 @@ export default function DevisForm({
                       );
                     })()}
                 </div>
+                <input
+                  type="text"
+                  autoComplete="off"
+                  value={ligne.detail}
+                  onChange={(e) => modifierLigne(ligne.key, { detail: e.target.value })}
+                  placeholder="Détail (optionnel)"
+                  className="w-full border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
+                />
                 <select
                   value={ligne.unite}
                   onChange={(e) => modifierLigne(ligne.key, { unite: e.target.value })}
@@ -464,6 +502,11 @@ export default function DevisForm({
                 <span className="text-sm text-muted text-right tabular-nums">
                   {formaterMontant(calculerTotalLigne(lignesCalcul[i]))}
                 </span>
+                {colonneTTC && (
+                  <span className="text-sm text-muted text-right tabular-nums">
+                    {formaterMontant(calculerTotalLigneTTC(lignesCalcul[i], tauxTVANum))} TTC
+                  </span>
+                )}
                 <button
                   type="button"
                   onClick={() => supprimerLigne(ligne.key)}

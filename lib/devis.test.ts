@@ -4,9 +4,24 @@ import {
   calculerTotalHT,
   calculerTotalHTNet,
   calculerTotalLigne,
+  calculerTotalLigneTTC,
   calculerTotalTTC,
   genererNumeroDevis,
 } from "./devis";
+
+describe("calculerTotalLigneTTC", () => {
+  it("applique la TVA au total HT de la ligne", () => {
+    expect(calculerTotalLigneTTC({ quantite: 2, prixUnitaire: 50 }, 20)).toBeCloseTo(120);
+  });
+
+  it("reste égal au total HT avec une TVA à 0", () => {
+    expect(calculerTotalLigneTTC({ quantite: 2, prixUnitaire: 50 }, 0)).toBe(100);
+  });
+
+  it("garde le signe d'une ligne négative (déduction)", () => {
+    expect(calculerTotalLigneTTC({ quantite: 1, prixUnitaire: -300 }, 20)).toBeCloseTo(-360);
+  });
+});
 
 describe("calculerTotalLigne", () => {
   it("multiplie la quantité par le prix unitaire", () => {

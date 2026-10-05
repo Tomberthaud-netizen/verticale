@@ -478,6 +478,7 @@ export async function supprimerPhoto(chantierId: string, photoId: string) {
 
 export interface LigneDevisInput {
   designation: string;
+  detail?: string;
   unite?: string;
   quantite: number;
   prixUnitaire: number;
@@ -487,6 +488,8 @@ export interface CreateDevisInput {
   /** Éditable uniquement via modifierDevis, et seulement par l'administrateur principal — voir
    * la vérification dans modifierDevis. Ignoré par createDevis (numéro toujours auto-généré). */
   numero?: string;
+  /** Ajoute une colonne "Total TTC" à chaque ligne du devis. */
+  colonneTTC?: boolean;
   intitule: string;
   chantierId?: string | null;
   responsableId?: string | null;
@@ -572,10 +575,12 @@ export async function createDevis(data: CreateDevisInput) {
         validiteJours: data.validiteJours ?? null,
         tauxTVA: data.tauxTVA,
         remiseHT: data.remiseHT ?? 0,
+        colonneTTC: data.colonneTTC ?? false,
         notes: data.notes?.trim() || null,
         lignes: {
           create: data.lignes.map((l, i) => ({
             designation: l.designation.trim(),
+            detail: l.detail?.trim() || null,
             unite: l.unite?.trim() || null,
             quantite: l.quantite,
             prixUnitaire: l.prixUnitaire,
@@ -629,10 +634,12 @@ export async function modifierDevis(devisId: string, data: CreateDevisInput) {
           validiteJours: data.validiteJours ?? null,
           tauxTVA: data.tauxTVA,
           remiseHT: data.remiseHT ?? 0,
+          colonneTTC: data.colonneTTC ?? false,
           notes: data.notes?.trim() || null,
           lignes: {
             create: data.lignes.map((l, i) => ({
               designation: l.designation.trim(),
+              detail: l.detail?.trim() || null,
               unite: l.unite?.trim() || null,
               quantite: l.quantite,
               prixUnitaire: l.prixUnitaire,
@@ -780,6 +787,7 @@ export async function creerDevisTS(devisId: string) {
         clientAdresse: source.clientAdresse,
         clientEmail: source.clientEmail,
         tauxTVA: source.tauxTVA,
+        colonneTTC: source.colonneTTC,
         lignes: { create: [{ designation: "", unite: null, quantite: 1, prixUnitaire: 0, ordre: 1 }] },
       },
     });
@@ -819,10 +827,12 @@ export async function reediterDevis(devisId: string) {
         validiteJours: source.validiteJours,
         tauxTVA: source.tauxTVA,
         remiseHT: source.remiseHT,
+        colonneTTC: source.colonneTTC,
         notes: source.notes,
         lignes: {
           create: source.lignes.map((l) => ({
             designation: l.designation,
+            detail: l.detail,
             unite: l.unite,
             quantite: l.quantite,
             prixUnitaire: l.prixUnitaire,

@@ -18,8 +18,9 @@ export interface DevisPourPdf {
   validiteJours: number | null;
   tauxTVA: number;
   remiseHT: number;
+  colonneTTC: boolean;
   notes: string | null;
-  lignes: { designation: string; unite: string | null; quantite: number; prixUnitaire: number }[];
+  lignes: { designation: string; detail: string | null; unite: string | null; quantite: number; prixUnitaire: number }[];
   chantier: { nom: string } | null;
   responsable: { nom: string; prenom: string; telephone: string | null } | null;
 }
@@ -76,6 +77,7 @@ export async function genererPdfDevisBuffer(devis: DevisPourPdf): Promise<Buffer
       validiteJours: devis.validiteJours,
       tauxTVA: devis.tauxTVA,
       remiseHT: devis.remiseHT,
+      colonneTTC: devis.colonneTTC,
       notes: devis.notes,
       lignes: devis.lignes,
       chantierNom: devis.chantier?.nom ?? null,

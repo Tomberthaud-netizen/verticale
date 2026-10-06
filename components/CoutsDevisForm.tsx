@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { modifierCoutsDevis } from "@/app/actions";
-import { formaterMontant } from "@/lib/finances";
+import { formaterMontantPrecis } from "@/lib/finances";
 
 interface CoutsDevisFormProps {
   devisId: string;
@@ -87,12 +87,12 @@ export default function CoutsDevisForm({
       <div className="flex flex-wrap gap-4 max-w-xl">
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[140px]">
           <p className="text-sm text-muted font-medium">Coût total (HT)</p>
-          <p className="text-xl font-semibold mt-1">{formaterMontant(coutTotal)}</p>
+          <p className="text-xl font-semibold mt-1">{formaterMontantPrecis(coutTotal)}</p>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[140px]">
           <p className="text-sm text-muted font-medium">Marge estimée</p>
           <p className={`text-xl font-semibold mt-1 ${margeConnue && marge < 0 ? "text-red-600" : ""}`}>
-            {margeConnue ? formaterMontant(marge) : "—"}
+            {margeConnue ? formaterMontantPrecis(marge) : "—"}
           </p>
           <p className="text-xs text-muted mt-1">Total HT du devis − coût total</p>
         </div>

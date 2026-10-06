@@ -7,6 +7,7 @@ import {
   calculerPrixChantier,
   estEcheancePaiementDepassee,
   formaterMontant,
+  formaterMontantPrecis,
 } from "./finances";
 
 describe("calculerPrixChantier", () => {
@@ -108,5 +109,20 @@ describe("formaterMontant", () => {
     const resultat = formaterMontant(195000);
     expect(resultat).toContain("195");
     expect(resultat).toContain("€");
+  });
+});
+
+describe("formaterMontantPrecis", () => {
+  it("affiche toujours les centimes", () => {
+    expect(formaterMontantPrecis(135.85).replace(/\s/g, " ")).toBe("135,85 €");
+    expect(formaterMontantPrecis(1200).replace(/\s/g, " ")).toBe("1 200,00 €");
+  });
+
+  it("garde le signe d'un montant négatif", () => {
+    expect(formaterMontantPrecis(-300.5).replace(/\s/g, " ")).toBe("-300,50 €");
+  });
+
+  it("retourne un tiret pour une valeur absente", () => {
+    expect(formaterMontantPrecis(null)).toBe("—");
   });
 });

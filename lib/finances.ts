@@ -57,3 +57,11 @@ export function formaterMontant(montant: number | null | undefined): string {
     montant
   );
 }
+
+/** Comme formaterMontant mais avec les centimes (ex. 135,85 €) — pour les prix de devis. */
+export function formaterMontantPrecis(montant: number | null | undefined): string {
+  if (montant == null) return "—";
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(
+    montant
+  );
+}

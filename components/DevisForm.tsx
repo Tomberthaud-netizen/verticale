@@ -13,7 +13,7 @@ import {
   calculerTotalLigneTTC,
   calculerTotalTTC,
 } from "@/lib/devis";
-import { formaterMontant } from "@/lib/finances";
+import { formaterMontantPrecis } from "@/lib/finances";
 import { filtrerDesignations } from "@/lib/suggestionPrix";
 
 interface LigneDraft {
@@ -500,11 +500,11 @@ export default function DevisForm({
                   className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
                 />
                 <span className="text-sm text-muted text-right tabular-nums">
-                  {formaterMontant(calculerTotalLigne(lignesCalcul[i]))}
+                  {formaterMontantPrecis(calculerTotalLigne(lignesCalcul[i]))}
                 </span>
                 {colonneTTC && (
                   <span className="text-sm text-muted text-right tabular-nums">
-                    {formaterMontant(calculerTotalLigneTTC(lignesCalcul[i], tauxTVANum))} TTC
+                    {formaterMontantPrecis(calculerTotalLigneTTC(lignesCalcul[i], tauxTVANum))} TTC
                   </span>
                 )}
                 <button
@@ -525,7 +525,7 @@ export default function DevisForm({
                   <span>
                     {ligne.suggestion.origine === "DEVIS" ? "💡 Référence" : "📋 Estimation catalogue"}
                     {" "}
-                    {formaterMontant(ligne.suggestion.prixSource)}
+                    {formaterMontantPrecis(ligne.suggestion.prixSource)}
                     {ligne.suggestion.dateSourceISO ? (
                       <> le {format(new Date(ligne.suggestion.dateSourceISO), "d MMM yyyy", { locale: fr })}</>
                     ) : (
@@ -539,7 +539,7 @@ export default function DevisForm({
                       <>
                         {" "}
                         · actualisé indice BT :{" "}
-                        <strong className="text-foreground">{formaterMontant(ligne.suggestion.prixActualise)}</strong>
+                        <strong className="text-foreground">{formaterMontantPrecis(ligne.suggestion.prixActualise)}</strong>
                       </>
                     ) : (
                       <> · indice BT indisponible pour cette période, prix non actualisé</>
@@ -581,25 +581,25 @@ export default function DevisForm({
           <>
             <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[160px]">
               <p className="text-sm text-muted font-medium">Sous-total HT</p>
-              <p className="text-xl font-semibold mt-1">{formaterMontant(sousTotalHT)}</p>
+              <p className="text-xl font-semibold mt-1">{formaterMontantPrecis(sousTotalHT)}</p>
             </div>
             <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[160px]">
               <p className="text-sm text-muted font-medium">Remise commerciale</p>
-              <p className="text-xl font-semibold mt-1 text-red-600">-{formaterMontant(remiseHTNum)}</p>
+              <p className="text-xl font-semibold mt-1 text-red-600">-{formaterMontantPrecis(remiseHTNum)}</p>
             </div>
           </>
         )}
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[160px]">
           <p className="text-sm text-muted font-medium">Total HT</p>
-          <p className="text-xl font-semibold mt-1">{formaterMontant(totalHT)}</p>
+          <p className="text-xl font-semibold mt-1">{formaterMontantPrecis(totalHT)}</p>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[160px]">
           <p className="text-sm text-muted font-medium">TVA ({tauxTVANum}%)</p>
-          <p className="text-xl font-semibold mt-1">{formaterMontant(montantTVA)}</p>
+          <p className="text-xl font-semibold mt-1">{formaterMontantPrecis(montantTVA)}</p>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[160px]">
           <p className="text-sm text-muted font-medium">Total TTC</p>
-          <p className="text-xl font-semibold mt-1">{formaterMontant(totalTTC)}</p>
+          <p className="text-xl font-semibold mt-1">{formaterMontantPrecis(totalTTC)}</p>
         </div>
       </div>
 

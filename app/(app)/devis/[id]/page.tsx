@@ -11,7 +11,7 @@ import {
   calculerTotalLigneTTC,
   calculerTotalTTC,
 } from "@/lib/devis";
-import { formaterMontant } from "@/lib/finances";
+import { formaterMontantPrecis } from "@/lib/finances";
 import SupprimerDevisButton from "@/components/SupprimerDevisButton";
 import LierChantierForm from "@/components/LierChantierForm";
 import StatutAffaireSelect from "@/components/StatutAffaireSelect";
@@ -112,13 +112,13 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
                   <td className="py-2 pr-2 text-muted whitespace-pre-wrap">{ligne.detail ?? "—"}</td>
                   <td className="py-2 pr-2 text-muted">{ligne.unite ?? "—"}</td>
                   <td className="py-2 pr-2 text-right tabular-nums">{ligne.quantite}</td>
-                  <td className="py-2 pr-2 text-right tabular-nums">{formaterMontant(ligne.prixUnitaire)}</td>
+                  <td className="py-2 pr-2 text-right tabular-nums">{formaterMontantPrecis(ligne.prixUnitaire)}</td>
                   <td className={`py-2 text-right tabular-nums ${devis.colonneTTC ? "pr-2" : "pr-0"}`}>
-                    {formaterMontant(calculerTotalLigne(ligne))}
+                    {formaterMontantPrecis(calculerTotalLigne(ligne))}
                   </td>
                   {devis.colonneTTC && (
                     <td className="py-2 pr-0 text-right tabular-nums">
-                      {formaterMontant(calculerTotalLigneTTC(ligne, devis.tauxTVA))}
+                      {formaterMontantPrecis(calculerTotalLigneTTC(ligne, devis.tauxTVA))}
                     </td>
                   )}
                 </tr>
@@ -133,25 +133,25 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
           <>
             <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[140px]">
               <p className="text-sm text-muted font-medium">Sous-total HT</p>
-              <p className="text-xl font-semibold mt-1">{formaterMontant(sousTotalHT)}</p>
+              <p className="text-xl font-semibold mt-1">{formaterMontantPrecis(sousTotalHT)}</p>
             </div>
             <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[140px]">
               <p className="text-sm text-muted font-medium">Remise commerciale</p>
-              <p className="text-xl font-semibold mt-1 text-red-600">-{formaterMontant(devis.remiseHT)}</p>
+              <p className="text-xl font-semibold mt-1 text-red-600">-{formaterMontantPrecis(devis.remiseHT)}</p>
             </div>
           </>
         )}
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[140px]">
           <p className="text-sm text-muted font-medium">Total HT</p>
-          <p className="text-xl font-semibold mt-1">{formaterMontant(totalHT)}</p>
+          <p className="text-xl font-semibold mt-1">{formaterMontantPrecis(totalHT)}</p>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[140px]">
           <p className="text-sm text-muted font-medium">TVA ({devis.tauxTVA}%)</p>
-          <p className="text-xl font-semibold mt-1">{formaterMontant(montantTVA)}</p>
+          <p className="text-xl font-semibold mt-1">{formaterMontantPrecis(montantTVA)}</p>
         </div>
         <div className="bg-surface border border-border rounded-lg p-4 flex-1 min-w-[140px]">
           <p className="text-sm text-muted font-medium">Total TTC</p>
-          <p className="text-xl font-semibold mt-1">{formaterMontant(totalTTC)}</p>
+          <p className="text-xl font-semibold mt-1">{formaterMontantPrecis(totalTTC)}</p>
         </div>
       </div>
 

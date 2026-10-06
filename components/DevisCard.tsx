@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import type { StatutAffaire } from "@prisma/client";
 import { calculerTotalHT, calculerTotalHTNet } from "@/lib/devis";
-import { formaterMontant } from "@/lib/finances";
+import { formaterMontantPrecis } from "@/lib/finances";
 import StatutAffaireBadge from "@/components/StatutAffaireBadge";
 
 export interface DevisPourCarte {
@@ -60,7 +60,7 @@ export default function DevisCard({ devis }: { devis: DevisPourCarte }) {
         </p>
       </div>
       <div className="text-right shrink-0">
-        <p className="text-lg font-semibold tabular-nums">{formaterMontant(totalHT)}</p>
+        <p className="text-lg font-semibold tabular-nums">{formaterMontantPrecis(totalHT)}</p>
         <p className="text-xs text-muted">HT · {devis.lignes.length} ligne(s)</p>
       </div>
     </Link>

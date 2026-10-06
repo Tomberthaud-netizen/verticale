@@ -668,9 +668,11 @@ export async function supprimerDevis(devisId: string) {
     select: { valide: true, chantierId: true, entreprise: true },
   });
   if (!existant) throw new Error("Devis introuvable.");
-  await requireAcces("DEVIS", existant.entreprise as Entreprise);
-  if (existant.valide) {
-    throw new Error("Ce devis est validé et figé : il ne peut plus être supprimé.");
+  const personne = await requireAcces("DEVIS", existant.entreprise as Entreprise);
+  // Un devis validé est figé : seul l'administrateur principal peut encore le supprimer. Les
+  // factures liées sont conservées (Facture.devisId passe à null, cf. onDelete: SetNull).
+  if (existant.valide && !personne.estAdminPrincipal) {
+    throw new Error("Ce devis est validé et figé : seul l'administrateur principal peut le supprimer.");
   }
   const devis = await prisma.devis.delete({ where: { id: devisId } });
   revalidatePath("/devis");

@@ -31,7 +31,7 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
   const { id } = await params;
   const devis = await getDevis(id);
   if (!devis) notFound();
-  await requireAcces("DEVIS", devis.entreprise as Entreprise);
+  const personne = await requireAcces("DEVIS", devis.entreprise as Entreprise);
   const [chantiers, personnes] = await Promise.all([
     getChantiersNoms(devis.entreprise as Entreprise),
     getPersonnesNoms(),
@@ -216,15 +216,15 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
         <div className="flex items-center gap-2">
           <PdfQuickLook href={`/api/devis/${devis.id}/pdf`} fileName={`${devis.numero}.pdf`} />
           {!devis.valide && (
-            <>
-              <Link
-                href={`/devis/${devis.id}/modifier`}
-                className="shrink-0 rounded-md border border-border text-sm font-medium px-3 py-1.5 hover:bg-surface transition-colors"
-              >
-                Modifier
-              </Link>
-              <SupprimerDevisButton devisId={devis.id} intituleDevis={devis.intitule} />
-            </>
+            <Link
+              href={`/devis/${devis.id}/modifier`}
+              className="shrink-0 rounded-md border border-border text-sm font-medium px-3 py-1.5 hover:bg-surface transition-colors"
+            >
+              Modifier
+            </Link>
+          )}
+          {(!devis.valide || personne.estAdminPrincipal) && (
+            <SupprimerDevisButton devisId={devis.id} intituleDevis={devis.intitule} valide={devis.valide} />
           )}
         </div>
       </div>

@@ -82,7 +82,7 @@ export async function supprimerSousTraitant(sousTraitantId: string) {
     await prisma.sousTraitant.delete({ where: { id: sousTraitantId } });
   } catch (err) {
     if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2003") {
-      throw new Error("Ce sous-traitant a des paiements enregistrés sur un chantier : impossible de le supprimer.");
+      throw new Error("Ce sous-traitant a des paiements ou des bons de commande enregistrés : impossible de le supprimer.");
     }
     throw err;
   }

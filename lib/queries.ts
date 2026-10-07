@@ -535,3 +535,15 @@ export async function getLibellesEtOrdresOnglets(): Promise<{
 
   return { libelles, ordres };
 }
+
+/** Bons de commande d'un devis, avec le nom du sous-traitant et de quoi calculer leur total. */
+export function getBonsCommandeDuDevis(devisId: string) {
+  return prisma.bonCommande.findMany({
+    where: { devisId },
+    include: {
+      sousTraitant: { select: { nom: true } },
+      lignes: { select: { quantite: true, prixUnitaire: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getChantiersNoms, getDevis, getPersonnesNoms } from "@/lib/queries";
+import { getBonsCommandeDuDevis, getChantiersNoms, getDevis, getPersonnesNoms, getSousTraitantsNoms } from "@/lib/queries";
 import {
   calculerMontantTVA,
   calculerTotalHT,
@@ -23,6 +23,7 @@ import PlanningDevisForm from "@/components/PlanningDevisForm";
 import RetourButton from "@/components/RetourButton";
 import SousOnglets from "@/components/SousOnglets";
 import CoutsDevisForm from "@/components/CoutsDevisForm";
+import BonsCommandePanel from "@/components/BonsCommandePanel";
 import AdressePopup from "@/components/AdressePopup";
 import { requireAcces } from "@/lib/authContext";
 import type { Entreprise } from "@/constants/entreprises";
@@ -32,9 +33,11 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
   const devis = await getDevis(id);
   if (!devis) notFound();
   const personne = await requireAcces("DEVIS", devis.entreprise as Entreprise);
-  const [chantiers, personnes] = await Promise.all([
+  const [chantiers, personnes, sousTraitants, bonsCommande] = await Promise.all([
     getChantiersNoms(devis.entreprise as Entreprise),
     getPersonnesNoms(),
+    getSousTraitantsNoms(devis.entreprise as Entreprise),
+    getBonsCommandeDuDevis(devis.id),
   ]);
 
   const sousTotalHT = calculerTotalHT(devis.lignes);
@@ -161,6 +164,20 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
           <p className="whitespace-pre-wrap text-muted">{devis.notes}</p>
         </section>
       )}
+
+      <BonsCommandePanel
+        devisId={devis.id}
+        sousTraitants={sousTraitants}
+        lignesDevis={devis.lignes.map((l) => ({ quantite: l.quantite, prixUnitaire: l.prixUnitaire }))}
+        bons={bonsCommande.map((b) => ({
+          id: b.id,
+          numero: b.numero,
+          sousTraitantNom: b.sousTraitant.nom,
+          diviseur: b.diviseur,
+          dateBon: b.dateBon,
+          lignes: b.lignes,
+        }))}
+      />
 
       <DevisValidationActions devisId={devis.id} valide={devis.valide} envoiMail={{ clientEmail: devis.clientEmail }} />
     </div>

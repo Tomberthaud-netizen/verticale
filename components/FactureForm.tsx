@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { creerFacture } from "@/app/financeActions";
 import { calculerMontantTVA, calculerTotalTTC } from "@/lib/devis";
 import { formaterMontant } from "@/lib/finances";
+import type { ValeursInitialesFacture } from "@/lib/factures";
 
 interface DevisOption {
   id: string;
@@ -20,22 +21,28 @@ export default function FactureForm({
   devisDisponibles,
   chantiers,
   entrepriseActive,
+  valeursInitiales,
+  facturePrepareeId,
 }: {
   devisDisponibles: DevisOption[];
   chantiers: { id: string; nom: string }[];
   entrepriseActive: string;
+  /** Pré-remplissage (facture préparée depuis un acompte) — tous les champs restent modifiables. */
+  valeursInitiales?: ValeursInitialesFacture;
+  /** Brouillon à supprimer une fois la facture créée. */
+  facturePrepareeId?: string;
 }) {
   const router = useRouter();
-  const [devisId, setDevisId] = useState("");
-  const [chantierId, setChantierId] = useState("");
-  const [clientNom, setClientNom] = useState("");
-  const [clientAdresse, setClientAdresse] = useState("");
-  const [montantHT, setMontantHT] = useState("");
+  const [devisId, setDevisId] = useState(valeursInitiales?.devisId ?? "");
+  const [chantierId, setChantierId] = useState(valeursInitiales?.chantierId ?? "");
+  const [clientNom, setClientNom] = useState(valeursInitiales?.clientNom ?? "");
+  const [clientAdresse, setClientAdresse] = useState(valeursInitiales?.clientAdresse ?? "");
+  const [montantHT, setMontantHT] = useState(valeursInitiales?.montantHT ?? "");
   const [coutRealisationHT, setCoutRealisationHT] = useState("");
-  const [tauxTVA, setTauxTVA] = useState("20");
+  const [tauxTVA, setTauxTVA] = useState(valeursInitiales?.tauxTVA ?? "20");
   const [dateFacture, setDateFacture] = useState(() => format(new Date(), "yyyy-MM-dd"));
   const [dateEcheance, setDateEcheance] = useState("");
-  const [notes, setNotes] = useState("");
+  const [notes, setNotes] = useState(valeursInitiales?.notes ?? "");
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
 
@@ -69,6 +76,7 @@ export default function FactureForm({
         dateFacture,
         dateEcheance: dateEcheance || undefined,
         notes: notes || undefined,
+        facturePrepareeId,
       });
       router.push(`/finance/factures/${id}`);
     } catch (err) {

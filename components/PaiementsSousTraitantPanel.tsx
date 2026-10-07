@@ -8,18 +8,30 @@ import { ajouterPaiementSousTraitant, supprimerPaiementSousTraitant } from "@/ap
 import { formaterMontant } from "@/lib/finances";
 import type { PaiementSousTraitantCalcule } from "@/lib/chantier";
 
+/** Valeur du menu "Facture à préparer" signifiant explicitement "ne pas préparer de facture". */
+const AUCUNE_FACTURE = "aucune";
+
 export default function PaiementsSousTraitantPanel({
   chantierId,
   paiements,
   sousTraitants,
+  devis,
 }: {
   chantierId: string;
   paiements: PaiementSousTraitantCalcule[];
   sousTraitants: { id: string; nom: string }[];
+  /** Devis du chantier : un brouillon de facture pré-remplie peut être préparé sur l'un d'eux. */
+  devis: { id: string; numero: string; intitule: string }[];
 }) {
   const router = useRouter();
   const [sousTraitantId, setSousTraitantId] = useState("");
   const [montant, setMontant] = useState("");
+  const [notes, setNotes] = useState("");
+  // Un seul devis : présélectionné. Plusieurs : choix explicite obligatoire (ou "Aucune facture").
+  // Aucun devis : pas de menu, pas de facture préparée.
+  const [devisChoisi, setDevisChoisi] = useState(
+    devis.length === 0 ? AUCUNE_FACTURE : devis.length === 1 ? devis[0].id : ""
+  );
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
 
@@ -32,10 +44,19 @@ export default function PaiementsSousTraitantPanel({
       setErreur("Sélectionnez le sous-traitant à qui ce paiement est destiné.");
       return;
     }
+    if (!devisChoisi) {
+      setErreur("Choisissez le devis sur lequel préparer la facture, ou « Aucune facture ».");
+      return;
+    }
     setEnCours(true);
     try {
-      await ajouterPaiementSousTraitant(chantierId, sousTraitantId, Number(montant));
+      await ajouterPaiementSousTraitant(chantierId, sousTraitantId, Number(montant), {
+        notes: notes || undefined,
+        devisId: devisChoisi === AUCUNE_FACTURE ? null : devisChoisi,
+      });
       setMontant("");
+      setNotes("");
+      if (devis.length > 1) setDevisChoisi("");
       router.refresh();
     } catch (err) {
       setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
@@ -59,25 +80,25 @@ export default function PaiementsSousTraitantPanel({
       {paiements.length > 0 ? (
         <ul className="flex flex-col gap-1.5">
           {paiements.map((p) => (
-            <li
-              key={p.id}
-              className="flex justify-between items-center gap-3 border border-border rounded-md px-3 py-2 bg-surface text-sm"
-            >
-              <span className="flex items-center gap-2 min-w-0 flex-wrap">
-                <span className="font-medium">{p.libelle}</span>
-                <span className="text-muted">→ {p.sousTraitantNom}</span>
-                <span className="text-muted">{format(p.dateAjout, "d MMMM yyyy", { locale: fr })}</span>
-              </span>
-              <span className="flex items-center gap-3 shrink-0">
-                <span className="tabular-nums font-medium">{formaterMontant(p.montant)}</span>
-                <button
-                  type="button"
-                  onClick={() => handleSupprimer(p.id)}
-                  className="text-muted hover:text-red-600"
-                >
-                  Supprimer
-                </button>
-              </span>
+            <li key={p.id} className="border border-border rounded-md px-3 py-2 bg-surface text-sm">
+              <div className="flex justify-between items-center gap-3">
+                <span className="flex items-center gap-2 min-w-0 flex-wrap">
+                  <span className="font-medium">{p.libelle}</span>
+                  <span className="text-muted">→ {p.sousTraitantNom}</span>
+                  <span className="text-muted">{format(p.dateAjout, "d MMMM yyyy", { locale: fr })}</span>
+                </span>
+                <span className="flex items-center gap-3 shrink-0">
+                  <span className="tabular-nums font-medium">{formaterMontant(p.montant)}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleSupprimer(p.id)}
+                    className="text-muted hover:text-red-600"
+                  >
+                    Supprimer
+                  </button>
+                </span>
+              </div>
+              {p.notes && <p className="mt-1 text-xs text-muted whitespace-pre-wrap">{p.notes}</p>}
             </li>
           ))}
         </ul>
@@ -110,7 +131,7 @@ export default function PaiementsSousTraitantPanel({
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm font-medium">
-          Montant
+          Montant (HT)
           <input
             required
             type="number"
@@ -122,6 +143,39 @@ export default function PaiementsSousTraitantPanel({
             className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface w-40"
           />
         </label>
+        {devis.length > 0 && (
+          <label className="flex flex-col gap-1 text-sm font-medium">
+            Facture à préparer sur le devis
+            <select
+              required
+              value={devisChoisi}
+              onChange={(e) => setDevisChoisi(e.target.value)}
+              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface w-64"
+            >
+              {devis.length > 1 && (
+                <option value="" disabled>
+                  Choisir…
+                </option>
+              )}
+              {devis.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.numero} — {d.intitule}
+                </option>
+              ))}
+              <option value={AUCUNE_FACTURE}>Aucune facture</option>
+            </select>
+          </label>
+        )}
+        <label className="flex flex-col gap-1 text-sm font-medium w-full">
+          Informations annexes (optionnel)
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            rows={2}
+            placeholder="Ex : virement du 12/10, référence facture sous-traitant…"
+            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface resize-y"
+          />
+        </label>
         <button
           type="submit"
           disabled={enCours}
@@ -129,6 +183,11 @@ export default function PaiementsSousTraitantPanel({
         >
           {enCours ? "Ajout…" : "+ Ajouter"}
         </button>
+        {devis.length === 0 && (
+          <p className="text-xs text-muted w-full">
+            Aucun devis sur ce chantier : aucune facture ne sera préparée avec ce paiement.
+          </p>
+        )}
         {erreur && <p className="text-sm text-red-600 w-full">{erreur}</p>}
       </form>
     </div>

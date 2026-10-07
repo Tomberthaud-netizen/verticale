@@ -250,6 +250,7 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
         chantierId={calcule.id}
         paiements={calcule.paiementsSousTraitant}
         sousTraitants={sousTraitants}
+        devis={chantier.devis.map((d) => ({ id: d.id, numero: d.numero, intitule: d.intitule }))}
       />
     </section>
   );

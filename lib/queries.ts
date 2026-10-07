@@ -547,3 +547,20 @@ export function getBonsCommandeDuDevis(devisId: string) {
     orderBy: { createdAt: "desc" },
   });
 }
+
+/** Brouillons de facture (acomptes) et factures réelles rattachés à un devis, pour sa fiche. */
+export async function getFacturesDuDevis(devisId: string) {
+  const [facturesPreparees, factures] = await Promise.all([
+    prisma.facturePreparee.findMany({
+      where: { devisId },
+      include: { paiement: { select: { dateAjout: true, sousTraitant: { select: { nom: true } } } } },
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.facture.findMany({
+      where: { devisId, statut: { not: "ANNULEE" } },
+      select: { id: true, numero: true, montantHT: true, dateFacture: true },
+      orderBy: { dateFacture: "desc" },
+    }),
+  ]);
+  return { facturesPreparees, factures };
+}

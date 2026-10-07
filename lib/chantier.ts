@@ -56,6 +56,7 @@ export interface PaiementSousTraitantCalcule {
   dateAjout: Date;
   sousTraitantId: string;
   sousTraitantNom: string;
+  notes: string | null;
 }
 
 /** Libellé dérivé du rang du paiement PARMI CEUX DU MÊME SOUS-TRAITANT, trié par date d'ajout :
@@ -76,6 +77,7 @@ export function calculerPaiementsSousTraitant(
       dateAjout: p.dateAjout,
       sousTraitantId: p.sousTraitantId,
       sousTraitantNom: p.sousTraitant.nom,
+      notes: p.notes,
     };
   });
 }

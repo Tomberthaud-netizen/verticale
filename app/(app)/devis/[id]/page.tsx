@@ -2,7 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { getBonsCommandeDuDevis, getChantiersNoms, getDevis, getPersonnesNoms, getSousTraitantsNoms } from "@/lib/queries";
+import {
+  getBonsCommandeDuDevis,
+  getChantiersNoms,
+  getDevis,
+  getFacturesDuDevis,
+  getPersonnesNoms,
+  getSousTraitantsNoms,
+} from "@/lib/queries";
 import {
   calculerMontantTVA,
   calculerTotalHT,
@@ -24,6 +31,7 @@ import RetourButton from "@/components/RetourButton";
 import SousOnglets from "@/components/SousOnglets";
 import CoutsDevisForm from "@/components/CoutsDevisForm";
 import BonsCommandePanel from "@/components/BonsCommandePanel";
+import FacturesDevisPanel from "@/components/FacturesDevisPanel";
 import AdressePopup from "@/components/AdressePopup";
 import { requireAcces } from "@/lib/authContext";
 import type { Entreprise } from "@/constants/entreprises";
@@ -33,11 +41,12 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
   const devis = await getDevis(id);
   if (!devis) notFound();
   const personne = await requireAcces("DEVIS", devis.entreprise as Entreprise);
-  const [chantiers, personnes, sousTraitants, bonsCommande] = await Promise.all([
+  const [chantiers, personnes, sousTraitants, bonsCommande, facturesDuDevis] = await Promise.all([
     getChantiersNoms(devis.entreprise as Entreprise),
     getPersonnesNoms(),
     getSousTraitantsNoms(devis.entreprise as Entreprise),
     getBonsCommandeDuDevis(devis.id),
+    getFacturesDuDevis(devis.id),
   ]);
 
   const sousTotalHT = calculerTotalHT(devis.lignes);
@@ -164,6 +173,17 @@ export default async function DevisDetailPage({ params }: PageProps<"/devis/[id]
           <p className="whitespace-pre-wrap text-muted">{devis.notes}</p>
         </section>
       )}
+
+      <FacturesDevisPanel
+        facturesPreparees={facturesDuDevis.facturesPreparees.map((b) => ({
+          id: b.id,
+          montantHT: b.montantHT,
+          notes: b.notes,
+          sousTraitantNom: b.paiement.sousTraitant.nom,
+          dateAcompte: b.paiement.dateAjout,
+        }))}
+        factures={facturesDuDevis.factures}
+      />
 
       <BonsCommandePanel
         devisId={devis.id}

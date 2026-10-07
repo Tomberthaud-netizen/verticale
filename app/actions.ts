@@ -1055,7 +1055,17 @@ export async function supprimerLigneFinanciere(chantierId: string, ligneId: stri
 /** Enregistre un montant versé à un sous-traitant, daté d'aujourd'hui. Son libellé ("Acompte" /
  * "Situation N") est dérivé de son rang parmi les paiements de ce même sous-traitant à
  * l'affichage, pas stocké (voir lib/chantier.ts). */
-export async function ajouterPaiementSousTraitant(chantierId: string, sousTraitantId: string, montant: number) {
+export async function ajouterPaiementSousTraitant(
+  chantierId: string,
+  sousTraitantId: string,
+  montant: number,
+  options: {
+    /** Informations annexes libres sur ce paiement. */
+    notes?: string;
+    /** Devis du chantier sur lequel préparer une facture brouillon pré-remplie (voir FacturePreparee). */
+    devisId?: string | null;
+  } = {}
+) {
   const entreprise = await entrepriseDuChantier(chantierId);
   await requireAcces("VUE_ENSEMBLE", entreprise);
   if (!sousTraitantId) {
@@ -1068,8 +1078,47 @@ export async function ajouterPaiementSousTraitant(chantierId: string, sousTraita
   if (!sousTraitant || sousTraitant.entreprise !== entreprise) {
     throw new Error("Ce sous-traitant n'appartient pas à cette entreprise.");
   }
-  await prisma.paiementSousTraitant.create({ data: { chantierId, sousTraitantId, montant } });
+  const notes = options.notes?.trim() || null;
+
+  if (options.devisId) {
+    const devis = await prisma.devis.findUnique({
+      where: { id: options.devisId },
+      select: { chantierId: true, entreprise: true },
+    });
+    if (!devis || devis.chantierId !== chantierId || devis.entreprise !== entreprise) {
+      throw new Error("Ce devis n'est pas rattaché à ce chantier.");
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    const paiement = await tx.paiementSousTraitant.create({ data: { chantierId, sousTraitantId, montant, notes } });
+    if (options.devisId) {
+      await tx.facturePreparee.create({
+        data: {
+          entreprise,
+          devisId: options.devisId,
+          chantierId,
+          paiementSousTraitantId: paiement.id,
+          montantHT: montant,
+          notes,
+        },
+      });
+    }
+  });
   revalidatePath(`/chantiers/${chantierId}`);
+  if (options.devisId) revalidatePath(`/devis/${options.devisId}`);
+}
+
+/** Supprime un brouillon de facture préparé depuis un acompte (n'affecte ni l'acompte ni Finance). */
+export async function supprimerFacturePreparee(facturePrepareeId: string) {
+  const brouillon = await prisma.facturePreparee.findUnique({
+    where: { id: facturePrepareeId },
+    select: { entreprise: true, devisId: true },
+  });
+  if (!brouillon) throw new Error("Brouillon de facture introuvable.");
+  await requireAcces("DEVIS", brouillon.entreprise as Entreprise);
+  await prisma.facturePreparee.delete({ where: { id: facturePrepareeId } });
+  revalidatePath(`/devis/${brouillon.devisId}`);
 }
 
 export async function supprimerPaiementSousTraitant(chantierId: string, paiementId: string) {

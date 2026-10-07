@@ -127,6 +127,7 @@ model Chantier {
   lignesFinancieres     LigneFinanciereChantier[]
   factures              Facture[]
   paiementsSousTraitant PaiementSousTraitant[]
+  facturesPreparees     FacturePreparee[]
   sousTraitant          SousTraitant?             @relation(fields: [sousTraitantId], references: [id], onDelete: SetNull)
 
   @@index([sousTraitantId])
@@ -143,9 +144,12 @@ model PaiementSousTraitant {
   sousTraitantId String
   montant        Float
   dateAjout      DateTime @default(now())
+  // Informations annexes libres (référence, mode de paiement, remarque…).
+  notes          String?  @db.Text
 
-  chantier     Chantier     @relation(fields: [chantierId], references: [id], onDelete: Cascade)
-  sousTraitant SousTraitant @relation(fields: [sousTraitantId], references: [id], onDelete: Restrict)
+  chantier        Chantier         @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  sousTraitant    SousTraitant     @relation(fields: [sousTraitantId], references: [id], onDelete: Restrict)
+  facturePreparee FacturePreparee?
 
   @@index([chantierId])
   @@index([sousTraitantId])
@@ -263,12 +267,13 @@ model Devis {
   coutMateriauxHT  Float?
   coutHonorairesHT Float?
 
-  chantier     Chantier?        @relation(fields: [chantierId], references: [id], onDelete: SetNull)
-  responsable  Personne?        @relation(fields: [responsableId], references: [id], onDelete: SetNull)
-  lignes       LigneDevis[]
-  evenements   EvenementDevis[]
-  factures     Facture[]
-  bonsCommande BonCommande[]
+  chantier          Chantier?         @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  responsable       Personne?         @relation(fields: [responsableId], references: [id], onDelete: SetNull)
+  lignes            LigneDevis[]
+  evenements        EvenementDevis[]
+  factures          Facture[]
+  bonsCommande      BonCommande[]
+  facturesPreparees FacturePreparee[]
 
   @@index([chantierId])
   @@index([responsableId])
@@ -684,4 +689,27 @@ model LigneBonCommande {
   bonCommande BonCommande @relation(fields: [bonCommandeId], references: [id], onDelete: Cascade)
 
   @@index([bonCommandeId])
+}
+
+/// Brouillon de facture préparé automatiquement quand un acompte est saisi sur un chantier : il
+/// porte les infos déjà connues (devis, chantier, client, montant de l'acompte) pour pré-remplir le
+/// formulaire "Nouvelle facture". Ce n'est PAS une facture : aucun numéro n'est consommé et rien
+/// n'entre dans les chiffres de Finance tant que l'utilisateur ne l'a pas complétée (le brouillon
+/// est alors supprimé, voir creerFacture) — pas de trou dans la numérotation légale.
+model FacturePreparee {
+  id                     String   @id @default(cuid())
+  entreprise             String   @default("VERTICALE")
+  devisId                String
+  chantierId             String?
+  paiementSousTraitantId String   @unique
+  montantHT              Float
+  notes                  String?  @db.Text
+  createdAt              DateTime @default(now())
+
+  devis    Devis                @relation(fields: [devisId], references: [id], onDelete: Cascade)
+  chantier Chantier?            @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  paiement PaiementSousTraitant @relation(fields: [paiementSousTraitantId], references: [id], onDelete: Cascade)
+
+  @@index([devisId])
+  @@index([chantierId])
 }

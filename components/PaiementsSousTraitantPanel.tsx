@@ -1,37 +1,33 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { ajouterPaiementSousTraitant, supprimerPaiementSousTraitant } from "@/app/actions";
 import { formaterMontant } from "@/lib/finances";
 import type { PaiementSousTraitantCalcule } from "@/lib/chantier";
-
-/** Valeur du menu "Facture à préparer" signifiant explicitement "ne pas préparer de facture". */
-const AUCUNE_FACTURE = "aucune";
+import { ENTREPRISES } from "@/constants/entreprises";
 
 export default function PaiementsSousTraitantPanel({
   chantierId,
   paiements,
   sousTraitants,
-  devis,
+  entrepriseChantier,
 }: {
   chantierId: string;
   paiements: PaiementSousTraitantCalcule[];
   sousTraitants: { id: string; nom: string }[];
-  /** Devis du chantier : un brouillon de facture pré-remplie peut être préparé sur l'un d'eux. */
-  devis: { id: string; numero: string; intitule: string }[];
+  /** Entreprise présélectionnée pour le bon de commande (celle du chantier). */
+  entrepriseChantier: string;
 }) {
   const router = useRouter();
   const [sousTraitantId, setSousTraitantId] = useState("");
   const [montant, setMontant] = useState("");
   const [notes, setNotes] = useState("");
-  // Un seul devis : présélectionné. Plusieurs : choix explicite obligatoire (ou "Aucune facture").
-  // Aucun devis : pas de menu, pas de facture préparée.
-  const [devisChoisi, setDevisChoisi] = useState(
-    devis.length === 0 ? AUCUNE_FACTURE : devis.length === 1 ? devis[0].id : ""
-  );
+  const [entrepriseBon, setEntrepriseBon] = useState(entrepriseChantier);
+  const [bonCree, setBonCree] = useState<{ numero: string } | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
 
@@ -44,19 +40,16 @@ export default function PaiementsSousTraitantPanel({
       setErreur("Sélectionnez le sous-traitant à qui ce paiement est destiné.");
       return;
     }
-    if (!devisChoisi) {
-      setErreur("Choisissez le devis sur lequel préparer la facture, ou « Aucune facture ».");
-      return;
-    }
+    setBonCree(null);
     setEnCours(true);
     try {
-      await ajouterPaiementSousTraitant(chantierId, sousTraitantId, Number(montant), {
+      const { bonCommande } = await ajouterPaiementSousTraitant(chantierId, sousTraitantId, Number(montant), {
         notes: notes || undefined,
-        devisId: devisChoisi === AUCUNE_FACTURE ? null : devisChoisi,
+        entrepriseBon,
       });
       setMontant("");
       setNotes("");
-      if (devis.length > 1) setDevisChoisi("");
+      setBonCree({ numero: bonCommande.numero });
       router.refresh();
     } catch (err) {
       setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
@@ -143,29 +136,21 @@ export default function PaiementsSousTraitantPanel({
             className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface w-40"
           />
         </label>
-        {devis.length > 0 && (
-          <label className="flex flex-col gap-1 text-sm font-medium">
-            Facture à préparer sur le devis
-            <select
-              required
-              value={devisChoisi}
-              onChange={(e) => setDevisChoisi(e.target.value)}
-              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface w-64"
-            >
-              {devis.length > 1 && (
-                <option value="" disabled>
-                  Choisir…
-                </option>
-              )}
-              {devis.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {d.numero} — {d.intitule}
-                </option>
-              ))}
-              <option value={AUCUNE_FACTURE}>Aucune facture</option>
-            </select>
-          </label>
-        )}
+        <label className="flex flex-col gap-1 text-sm font-medium">
+          Bon de commande au nom de
+          <select
+            required
+            value={entrepriseBon}
+            onChange={(e) => setEntrepriseBon(e.target.value)}
+            className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-surface w-40"
+          >
+            {ENTREPRISES.map((e) => (
+              <option key={e} value={e}>
+                {e}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="flex flex-col gap-1 text-sm font-medium w-full">
           Informations annexes (optionnel)
           <textarea
@@ -183,9 +168,17 @@ export default function PaiementsSousTraitantPanel({
         >
           {enCours ? "Ajout…" : "+ Ajouter"}
         </button>
-        {devis.length === 0 && (
-          <p className="text-xs text-muted w-full">
-            Aucun devis sur ce chantier : aucune facture ne sera préparée avec ce paiement.
+        <p className="text-xs text-muted w-full">
+          Un bon de commande est créé automatiquement avec ce montant : retrouvez-le, envoyez-le au sous-traitant
+          ou transformez-le en facture dans l&apos;onglet Bons de commande.
+        </p>
+        {bonCree && (
+          <p className="text-sm text-emerald-700 w-full">
+            Bon de commande {bonCree.numero} créé —{" "}
+            <Link href="/bons-commande" className="underline">
+              le voir dans Bons de commande
+            </Link>
+            .
           </p>
         )}
         {erreur && <p className="text-sm text-red-600 w-full">{erreur}</p>}

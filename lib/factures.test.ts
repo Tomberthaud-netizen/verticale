@@ -6,7 +6,6 @@ import {
   estAlerteRetardEncaissement,
   genererNumeroFacture,
   trouverDateEncaissementComplet,
-  preparerValeursFactureAcompte,
 } from "./factures";
 
 describe("genererNumeroFacture", () => {
@@ -110,36 +109,5 @@ describe("estAlerteRetardEncaissement", () => {
 
   it("déclenche l'alerte pour une facture partiellement payée après le seuil", () => {
     expect(estAlerteRetardEncaissement(new Date("2026-04-01"), 1000, 300, aujourdHui)).toBe(true);
-  });
-});
-
-describe("preparerValeursFactureAcompte", () => {
-  const devis = { id: "d1", clientNom: " M. Dupont ", clientAdresse: "12 rue des Lilas, 75012 Paris", tauxTVA: 10 };
-
-  it("reprend client, adresse, TVA du devis et le montant de l'acompte", () => {
-    expect(
-      preparerValeursFactureAcompte({ devis, chantierId: "c1", chantierAdresse: "autre", montantHT: 5000, notes: " 1er acompte " })
-    ).toEqual({
-      devisId: "d1",
-      chantierId: "c1",
-      clientNom: "M. Dupont",
-      clientAdresse: "12 rue des Lilas, 75012 Paris",
-      montantHT: "5000",
-      tauxTVA: "10",
-      notes: "1er acompte",
-    });
-  });
-
-  it("se rabat sur l'adresse du chantier si le devis n'a pas d'adresse client", () => {
-    const valeurs = preparerValeursFactureAcompte({
-      devis: { ...devis, clientAdresse: null },
-      chantierId: "c1",
-      chantierAdresse: "3 rue du Chantier",
-      montantHT: 250.5,
-      notes: null,
-    });
-    expect(valeurs.clientAdresse).toBe("3 rue du Chantier");
-    expect(valeurs.montantHT).toBe("250.5");
-    expect(valeurs.notes).toBe("");
   });
 });

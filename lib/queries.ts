@@ -191,10 +191,9 @@ export interface FiltreFournisseur {
   type?: string;
 }
 
-export function getFournisseurs(entreprise: Entreprise, filtres: FiltreFournisseur = {}) {
+export function getFournisseurs(filtres: FiltreFournisseur = {}) {
   return prisma.fournisseur.findMany({
     where: {
-      entreprise,
       ...(filtres.nom ? { nom: { contains: filtres.nom } } : {}),
       ...(filtres.type ? { typesProduit: { some: { type: { contains: filtres.type } } } } : {}),
     },
@@ -227,9 +226,8 @@ export async function getTypesProduitExistants(): Promise<string[]> {
 }
 
 /** Noms des fournisseurs existants, pour l'autocomplétion de la barre de recherche. */
-export async function getFournisseurNoms(entreprise: Entreprise): Promise<string[]> {
+export async function getFournisseurNoms(): Promise<string[]> {
   const rows = await prisma.fournisseur.findMany({
-    where: { entreprise },
     select: { nom: true },
     orderBy: { nom: "asc" },
   });
@@ -242,10 +240,9 @@ export interface FiltreSousTraitant {
   type?: string;
 }
 
-export function getSousTraitants(entreprise: Entreprise, filtres: FiltreSousTraitant = {}) {
+export function getSousTraitants(filtres: FiltreSousTraitant = {}) {
   return prisma.sousTraitant.findMany({
     where: {
-      entreprise,
       ...(filtres.nom ? { nom: { contains: filtres.nom } } : {}),
       ...(filtres.contact
         ? { OR: [{ contactNom: { contains: filtres.contact } }, { contactPrenom: { contains: filtres.contact } }] }
@@ -270,11 +267,8 @@ export async function getTypesTravauxExistants(): Promise<string[]> {
 }
 
 /** Noms d'entreprise et noms de contact des sous-traitants existants, pour l'autocomplétion de la recherche. */
-export async function getSousTraitantSuggestions(
-  entreprise: Entreprise
-): Promise<{ noms: string[]; contacts: string[] }> {
+export async function getSousTraitantSuggestions(): Promise<{ noms: string[]; contacts: string[] }> {
   const rows = await prisma.sousTraitant.findMany({
-    where: { entreprise },
     select: { nom: true, contactNom: true, contactPrenom: true },
     orderBy: { nom: "asc" },
   });
@@ -296,9 +290,8 @@ export function getSousTraitant(id: string) {
 }
 
 /** Liste légère des sous-traitants, pour le sélecteur d'affectation depuis un chantier. */
-export function getSousTraitantsNoms(entreprise: Entreprise) {
+export function getSousTraitantsNoms() {
   return prisma.sousTraitant.findMany({
-    where: { entreprise },
     select: { id: true, nom: true },
     orderBy: { nom: "asc" },
   });
@@ -548,19 +541,17 @@ export function getBonsCommandeDuDevis(devisId: string) {
   });
 }
 
-/** Brouillons de facture (acomptes) et factures réelles rattachés à un devis, pour sa fiche. */
-export async function getFacturesDuDevis(devisId: string) {
-  const [facturesPreparees, factures] = await Promise.all([
-    prisma.facturePreparee.findMany({
-      where: { devisId },
-      include: { paiement: { select: { dateAjout: true, sousTraitant: { select: { nom: true } } } } },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.facture.findMany({
-      where: { devisId, statut: { not: "ANNULEE" } },
-      select: { id: true, numero: true, montantHT: true, dateFacture: true },
-      orderBy: { dateFacture: "desc" },
-    }),
-  ]);
-  return { facturesPreparees, factures };
+/** Tous les bons de commande émis au nom d'une entreprise, pour l'onglet "Bons de commande". */
+export function getBonsCommande(entreprise: Entreprise) {
+  return prisma.bonCommande.findMany({
+    where: { entreprise },
+    include: {
+      sousTraitant: { select: { nom: true, email: true } },
+      lignes: { select: { quantite: true, prixUnitaire: true } },
+      chantier: { select: { id: true, nom: true } },
+      devis: { select: { id: true, numero: true } },
+      facture: { select: { id: true, numero: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
 }

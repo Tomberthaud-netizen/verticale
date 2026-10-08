@@ -1,0 +1,270 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
+import {
+  convertirBonCommandeEnFacture,
+  envoyerBonCommandeParEmail,
+  supprimerBonCommande,
+} from "@/app/bonsCommandeActions";
+import { calculerMontantFactureDepuisBonCommande, estPourcentageValide } from "@/lib/bonCommande";
+import { formaterMontantPrecis } from "@/lib/finances";
+
+interface BonResume {
+  id: string;
+  numero: string;
+  intitule: string;
+  dateBon: Date;
+  envoyeLe: Date | null;
+  sousTraitantNom: string;
+  sousTraitantEmail: string | null;
+  totalHT: number;
+  lignes: { quantite: number; prixUnitaire: number }[];
+  chantier: { id: string; nom: string } | null;
+  devis: { id: string; numero: string } | null;
+  facture: { id: string; numero: string } | null;
+}
+
+function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean }) {
+  const router = useRouter();
+  const [enCours, setEnCours] = useState<"envoi" | "suppression" | null>(null);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const [formFacture, setFormFacture] = useState(false);
+  const [pourcentage, setPourcentage] = useState("");
+  const [clientNom, setClientNom] = useState("");
+  const [clientAdresse, setClientAdresse] = useState("");
+  const [tauxTVA, setTauxTVA] = useState("20");
+  const [creation, setCreation] = useState(false);
+
+  const pourcentageNombre = Number(pourcentage);
+  const apercuFacture =
+    pourcentage.trim() !== "" && estPourcentageValide(pourcentageNombre)
+      ? calculerMontantFactureDepuisBonCommande(bon.lignes, pourcentageNombre)
+      : null;
+
+  async function envoyer() {
+    if (!bon.sousTraitantEmail) return;
+    const deja = bon.envoyeLe ? " (déjà envoyé une fois)" : "";
+    if (!window.confirm(`Envoyer le bon de commande ${bon.numero} à ${bon.sousTraitantEmail} ?${deja}`)) return;
+    setErreur(null);
+    setEnCours("envoi");
+    try {
+      await envoyerBonCommandeParEmail(bon.id);
+      router.refresh();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
+    } finally {
+      setEnCours(null);
+    }
+  }
+
+  async function supprimer() {
+    if (!window.confirm(`Supprimer définitivement le bon de commande ${bon.numero} ?`)) return;
+    setErreur(null);
+    setEnCours("suppression");
+    try {
+      await supprimerBonCommande(bon.id);
+      router.refresh();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
+      setEnCours(null);
+    }
+  }
+
+  async function creerFacture(e: React.FormEvent) {
+    e.preventDefault();
+    setErreur(null);
+    setCreation(true);
+    try {
+      const { id } = await convertirBonCommandeEnFacture(bon.id, {
+        pourcentage: pourcentageNombre,
+        clientNom,
+        clientAdresse: clientAdresse || undefined,
+        tauxTVA: Number(tauxTVA),
+      });
+      router.push(`/finance/factures/${id}`);
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
+      setCreation(false);
+    }
+  }
+
+  return (
+    <li className="border border-border rounded-lg bg-surface p-4 flex flex-col gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-semibold">
+            {bon.numero} <span className="text-muted font-normal">· {bon.sousTraitantNom}</span>
+          </p>
+          <p className="text-sm text-muted">{bon.intitule}</p>
+          <p className="text-xs text-muted mt-0.5 flex flex-wrap gap-x-3">
+            <span>{format(bon.dateBon, "d MMM yyyy", { locale: fr })}</span>
+            {bon.chantier && (
+              <Link href={`/chantiers/${bon.chantier.id}`} className="underline">
+                Chantier {bon.chantier.nom}
+              </Link>
+            )}
+            {bon.devis && (
+              <Link href={`/devis/${bon.devis.id}`} className="underline">
+                Devis {bon.devis.numero}
+              </Link>
+            )}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-lg font-semibold tabular-nums">{formaterMontantPrecis(bon.totalHT)} HT</p>
+          <div className="flex flex-wrap justify-end gap-1.5 mt-1">
+            {bon.envoyeLe ? (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                Envoyé le {format(bon.envoyeLe, "d MMM yyyy", { locale: fr })}
+              </span>
+            ) : (
+              <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-background text-muted border border-border">
+                Non envoyé
+              </span>
+            )}
+            {bon.facture && (
+              <Link
+                href={`/finance/factures/${bon.facture.id}`}
+                className="text-xs font-medium px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200"
+              >
+                Facture {bon.facture.numero}
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <a
+          href={`/api/bons-commande/${bon.id}/pdf`}
+          className="rounded-md border border-border text-sm font-medium px-3 py-1.5 hover:bg-background transition-colors"
+        >
+          Télécharger le PDF
+        </a>
+        <button
+          type="button"
+          onClick={envoyer}
+          disabled={!bon.sousTraitantEmail || enCours !== null}
+          title={bon.sousTraitantEmail ? `Envoyer à ${bon.sousTraitantEmail}` : "Ajoutez l'e-mail du sous-traitant dans sa fiche"}
+          className="rounded-md bg-foreground text-background text-sm font-medium px-3 py-1.5 hover:opacity-90 transition-opacity disabled:opacity-40"
+        >
+          {enCours === "envoi" ? "Envoi…" : bon.envoyeLe ? "Renvoyer par e-mail" : "Envoyer par e-mail"}
+        </button>
+        {peutFacturer && !bon.facture && (
+          <button
+            type="button"
+            onClick={() => setFormFacture((v) => !v)}
+            className="rounded-md border border-border text-sm font-medium px-3 py-1.5 hover:bg-background transition-colors"
+          >
+            Transformer en facture
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={supprimer}
+          disabled={enCours !== null}
+          className="ml-auto text-xs text-muted hover:text-red-600 disabled:opacity-40"
+        >
+          {enCours === "suppression" ? "Suppression…" : "Supprimer"}
+        </button>
+      </div>
+      {!bon.sousTraitantEmail && (
+        <p className="text-xs text-muted">
+          Pas d&apos;e-mail pour ce sous-traitant : ajoutez-le dans sa fiche (onglet Sous-traitants) pour pouvoir lui envoyer le bon.
+        </p>
+      )}
+
+      {formFacture && !bon.facture && (
+        <form onSubmit={creerFacture} className="border-t border-border pt-3 flex flex-col gap-3 max-w-2xl">
+          <p className="text-sm text-muted">
+            Chaque prix unitaire du bon de commande est majoré du pourcentage saisi ; le montant du bon devient le coût de
+            réalisation de la facture.
+          </p>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Augmentation du prix unitaire (%)
+              <input
+                required
+                type="number"
+                min={0}
+                step="any"
+                value={pourcentage}
+                onChange={(e) => setPourcentage(e.target.value)}
+                placeholder="Ex : 20"
+                className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Taux de TVA (%)
+              <input
+                required
+                type="number"
+                min={0}
+                step="0.1"
+                value={tauxTVA}
+                onChange={(e) => setTauxTVA(e.target.value)}
+                className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Nom du client
+              <input
+                required
+                value={clientNom}
+                onChange={(e) => setClientNom(e.target.value)}
+                placeholder="Ex : M. et Mme Dupont"
+                className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm font-medium">
+              Adresse du client
+              <input
+                value={clientAdresse}
+                onChange={(e) => setClientAdresse(e.target.value)}
+                placeholder="Ex : 12 rue des Lilas, 75012 Paris"
+                className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background"
+              />
+            </label>
+          </div>
+          {apercuFacture != null && (
+            <p className="text-sm text-muted">
+              Montant de la facture : <strong className="text-foreground">{formaterMontantPrecis(apercuFacture)} HT</strong>{" "}
+              (bon de commande : {formaterMontantPrecis(bon.totalHT)} HT)
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={creation}
+            className="self-start rounded-md bg-foreground text-background text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+          >
+            {creation ? "Création…" : "Créer la facture"}
+          </button>
+        </form>
+      )}
+
+      {erreur && <p className="text-sm text-red-600">{erreur}</p>}
+    </li>
+  );
+}
+
+export default function BonsCommandeListe({ bons, peutFacturer }: { bons: BonResume[]; peutFacturer: boolean }) {
+  if (bons.length === 0) {
+    return (
+      <p className="text-sm text-muted">
+        Aucun bon de commande pour le moment. Saisissez un acompte de sous-traitant sur un chantier (onglet Finances ›
+        Sous-traitant) : le bon de commande est créé automatiquement.
+      </p>
+    );
+  }
+  return (
+    <ul className="flex flex-col gap-3">
+      {bons.map((bon) => (
+        <LigneBon key={bon.id} bon={bon} peutFacturer={peutFacturer} />
+      ))}
+    </ul>
+  );
+}

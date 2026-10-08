@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { requireAcces } from "@/lib/authContext";
-import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import { getFournisseurNoms, getFournisseurs, getTypesProduitExistants } from "@/lib/queries";
 import { normaliserUrlExterne } from "@/lib/url";
 import SearchAutocompleteInput from "@/components/SearchAutocompleteInput";
@@ -10,10 +9,9 @@ export default async function FournisseursPage({ searchParams }: PageProps<"/fou
   const params = await searchParams;
   const nom = typeof params.nom === "string" ? params.nom : "";
   const type = typeof params.type === "string" ? params.type : "";
-  const entreprise = await getEntrepriseActive();
   const [fournisseurs, nomsExistants, typesExistants] = await Promise.all([
-    getFournisseurs(entreprise, { nom: nom || undefined, type: type || undefined }),
-    getFournisseurNoms(entreprise),
+    getFournisseurs({ nom: nom || undefined, type: type || undefined }),
+    getFournisseurNoms(),
     getTypesProduitExistants(),
   ]);
 

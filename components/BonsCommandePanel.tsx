@@ -17,7 +17,7 @@ interface BonCommandeResume {
   id: string;
   numero: string;
   sousTraitantNom: string;
-  diviseur: number;
+  diviseur: number | null;
   dateBon: Date;
   lignes: { quantite: number; prixUnitaire: number }[];
 }
@@ -94,7 +94,8 @@ export default function BonsCommandePanel({
                   {bon.numero} <span className="text-muted font-normal">· {bon.sousTraitantNom}</span>
                 </p>
                 <p className="text-xs text-muted">
-                  {format(bon.dateBon, "d MMM yyyy", { locale: fr })} · prix du devis ÷ {bon.diviseur} · Total HT{" "}
+                  {format(bon.dateBon, "d MMM yyyy", { locale: fr })}
+                  {bon.diviseur != null && <> · prix du devis ÷ {bon.diviseur}</>} · Total HT{" "}
                   {formaterMontantPrecis(calculerTotalHTBonCommande(bon.lignes))}
                 </p>
               </div>

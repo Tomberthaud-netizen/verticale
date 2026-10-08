@@ -62,6 +62,11 @@ export interface PaiementSousTraitantCalcule {
 /** Libellé dérivé du rang du paiement PARMI CEUX DU MÊME SOUS-TRAITANT, trié par date d'ajout :
  * "Acompte" pour le premier, "Situation N" pour les suivants — plusieurs sous-traitants
  * différents peuvent intervenir sur un même chantier, chacun avec son propre acompte. */
+/** "Acompte" pour le premier versement à un sous-traitant (rang 0), puis "Situation 1", "Situation 2"… */
+export function libellePaiementSousTraitant(rang: number): string {
+  return rang === 0 ? "Acompte" : `Situation ${rang}`;
+}
+
 export function calculerPaiementsSousTraitant(
   paiements: (PaiementSousTraitant & { sousTraitant: { nom: string } })[]
 ): PaiementSousTraitantCalcule[] {
@@ -72,7 +77,7 @@ export function calculerPaiementsSousTraitant(
     rangParSousTraitant.set(p.sousTraitantId, rang + 1);
     return {
       id: p.id,
-      libelle: rang === 0 ? "Acompte" : `Situation ${rang}`,
+      libelle: libellePaiementSousTraitant(rang),
       montant: p.montant,
       dateAjout: p.dateAjout,
       sousTraitantId: p.sousTraitantId,

@@ -7,7 +7,7 @@ export default async function NouveauChantierPage() {
   await requireAcces("VUE_ENSEMBLE");
   const entrepriseActive = await getEntrepriseActive();
   const [sousTraitants, dureesTypesTravaux, modelesRenovation] = await Promise.all([
-    getSousTraitantsNoms(entrepriseActive),
+    getSousTraitantsNoms(),
     getDureesTypesTravaux(),
     getModelesRenovation(),
   ]);

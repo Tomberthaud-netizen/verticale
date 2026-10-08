@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { requireAcces } from "@/lib/authContext";
-import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import { getSousTraitantSuggestions, getSousTraitants, getTypesTravauxExistants } from "@/lib/queries";
 import SearchAutocompleteInput from "@/components/SearchAutocompleteInput";
 
@@ -10,10 +9,9 @@ export default async function SousTraitantsPage({ searchParams }: PageProps<"/so
   const nom = typeof params.nom === "string" ? params.nom : "";
   const contact = typeof params.contact === "string" ? params.contact : "";
   const type = typeof params.type === "string" ? params.type : "";
-  const entreprise = await getEntrepriseActive();
   const [sousTraitants, suggestionsNomsContacts, typesExistants] = await Promise.all([
-    getSousTraitants(entreprise, { nom: nom || undefined, contact: contact || undefined, type: type || undefined }),
-    getSousTraitantSuggestions(entreprise),
+    getSousTraitants({ nom: nom || undefined, contact: contact || undefined, type: type || undefined }),
+    getSousTraitantSuggestions(),
     getTypesTravauxExistants(),
   ]);
 

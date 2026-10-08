@@ -18,6 +18,9 @@ import { envoyerEmail } from "@/lib/mail";
 import { remplacerPlaceholders } from "@/lib/emailTemplate";
 import { geocoderAdresse } from "@/lib/geocodage";
 import { MAX_PHOTOS_PAR_ENVOI } from "@/constants/photos";
+import { ENTREPRISES } from "@/constants/entreprises";
+import { libellePaiementSousTraitant } from "@/lib/chantier";
+import { prochainNumeroBonCommande } from "@/lib/bonCommandeNumero";
 import { creerChantierProvisoireEnBase } from "@/lib/chantierProvisoireImport";
 
 /** Entreprise propriétaire d'un chantier — pour vérifier l'accès à une ressource précise. */
@@ -52,14 +55,10 @@ export interface CreateChantierInput {
   phases: CreateChantierPhaseInput[];
 }
 
-async function validerSousTraitant(sousTraitantId: string, entreprise: Entreprise) {
-  const sousTraitant = await prisma.sousTraitant.findUnique({
-    where: { id: sousTraitantId },
-    select: { entreprise: true },
-  });
-  if (!sousTraitant || sousTraitant.entreprise !== entreprise) {
-    throw new Error("Ce sous-traitant n'appartient pas à cette entreprise.");
-  }
+/** Les sous-traitants sont communs à toutes les entreprises : on vérifie seulement qu'il existe. */
+async function validerSousTraitant(sousTraitantId: string) {
+  const sousTraitant = await prisma.sousTraitant.findUnique({ where: { id: sousTraitantId }, select: { id: true } });
+  if (!sousTraitant) throw new Error("Sous-traitant introuvable.");
 }
 
 function validerPhases(phases: CreateChantierPhaseInput[]) {
@@ -88,7 +87,7 @@ export async function createChantier(data: CreateChantierInput) {
   if (!data.nombrePieces || data.nombrePieces <= 0 || !Number.isInteger(data.nombrePieces)) {
     throw new Error("Le nombre de pièces doit être un entier positif.");
   }
-  if (data.sousTraitantId) await validerSousTraitant(data.sousTraitantId, entreprise);
+  if (data.sousTraitantId) await validerSousTraitant(data.sousTraitantId);
   validerPhases(data.phases);
 
   const coordonnees = await geocoderAdresse(adresse);
@@ -203,7 +202,7 @@ export async function completerChantier(chantierId: string, data: CompleterChant
   if (!data.nombrePieces || data.nombrePieces <= 0 || !Number.isInteger(data.nombrePieces)) {
     throw new Error("Le nombre de pièces doit être un entier positif.");
   }
-  if (data.sousTraitantId) await validerSousTraitant(data.sousTraitantId, entreprise);
+  if (data.sousTraitantId) await validerSousTraitant(data.sousTraitantId);
   validerPhases(data.phases);
 
   const coordonnees = await geocoderAdresse(adresse);
@@ -306,15 +305,7 @@ export async function relancerGeocodageChantier(chantierId: string) {
 export async function affecterSousTraitant(chantierId: string, sousTraitantId: string | null) {
   const entreprise = await entrepriseDuChantier(chantierId);
   await requireAcces("VUE_ENSEMBLE", entreprise);
-  if (sousTraitantId) {
-    const sousTraitant = await prisma.sousTraitant.findUnique({
-      where: { id: sousTraitantId },
-      select: { entreprise: true },
-    });
-    if (!sousTraitant || sousTraitant.entreprise !== entreprise) {
-      throw new Error("Ce sous-traitant n'appartient pas à cette entreprise.");
-    }
-  }
+  if (sousTraitantId) await validerSousTraitant(sousTraitantId);
   await prisma.chantier.update({ where: { id: chantierId }, data: { sousTraitantId } });
   revalidatePath(`/chantiers/${chantierId}`);
 }
@@ -1052,73 +1043,65 @@ export async function supprimerLigneFinanciere(chantierId: string, ligneId: stri
   revalidatePath("/");
 }
 
-/** Enregistre un montant versé à un sous-traitant, daté d'aujourd'hui. Son libellé ("Acompte" /
- * "Situation N") est dérivé de son rang parmi les paiements de ce même sous-traitant à
- * l'affichage, pas stocké (voir lib/chantier.ts). */
+/**
+ * Enregistre un montant versé à un sous-traitant, daté d'aujourd'hui, et crée en même temps le bon
+ * de commande correspondant (une ligne "Acompte"/"Situation N" du montant versé) au nom de
+ * l'entreprise choisie — il apparaît dans l'onglet "Bons de commande" et peut être envoyé au
+ * sous-traitant par e-mail. Le libellé ("Acompte" / "Situation N") est dérivé du rang du paiement
+ * parmi ceux de ce même sous-traitant sur le chantier (voir lib/chantier.ts).
+ */
 export async function ajouterPaiementSousTraitant(
   chantierId: string,
   sousTraitantId: string,
   montant: number,
   options: {
-    /** Informations annexes libres sur ce paiement. */
+    /** Informations annexes libres sur ce paiement (reprises en détail sur le bon de commande). */
     notes?: string;
-    /** Devis du chantier sur lequel préparer une facture brouillon pré-remplie (voir FacturePreparee). */
-    devisId?: string | null;
+    /** Entreprise au nom de laquelle le bon de commande est émis (par défaut, celle du chantier). */
+    entrepriseBon?: string;
   } = {}
 ) {
-  const entreprise = await entrepriseDuChantier(chantierId);
-  await requireAcces("VUE_ENSEMBLE", entreprise);
+  const chantier = await prisma.chantier.findUnique({
+    where: { id: chantierId },
+    select: { nom: true, adresse: true, entreprise: true },
+  });
+  if (!chantier) throw new Error("Chantier introuvable.");
+  await requireAcces("VUE_ENSEMBLE", chantier.entreprise as Entreprise);
   if (!sousTraitantId) {
     throw new Error("Sélectionnez le sous-traitant à qui ce paiement est destiné.");
   }
   if (!Number.isFinite(montant) || montant <= 0) {
     throw new Error("Le montant doit être un nombre positif.");
   }
-  const sousTraitant = await prisma.sousTraitant.findUnique({ where: { id: sousTraitantId }, select: { entreprise: true } });
-  if (!sousTraitant || sousTraitant.entreprise !== entreprise) {
-    throw new Error("Ce sous-traitant n'appartient pas à cette entreprise.");
+  await validerSousTraitant(sousTraitantId);
+
+  const entrepriseBon = options.entrepriseBon ?? chantier.entreprise;
+  if (!(ENTREPRISES as readonly string[]).includes(entrepriseBon)) {
+    throw new Error("Choisissez l'entreprise au nom de laquelle émettre le bon de commande.");
   }
   const notes = options.notes?.trim() || null;
 
-  if (options.devisId) {
-    const devis = await prisma.devis.findUnique({
-      where: { id: options.devisId },
-      select: { chantierId: true, entreprise: true },
-    });
-    if (!devis || devis.chantierId !== chantierId || devis.entreprise !== entreprise) {
-      throw new Error("Ce devis n'est pas rattaché à ce chantier.");
-    }
-  }
-
-  await prisma.$transaction(async (tx) => {
+  const bon = await prisma.$transaction(async (tx) => {
+    const rang = await tx.paiementSousTraitant.count({ where: { chantierId, sousTraitantId } });
+    const libelle = libellePaiementSousTraitant(rang);
     const paiement = await tx.paiementSousTraitant.create({ data: { chantierId, sousTraitantId, montant, notes } });
-    if (options.devisId) {
-      await tx.facturePreparee.create({
-        data: {
-          entreprise,
-          devisId: options.devisId,
-          chantierId,
-          paiementSousTraitantId: paiement.id,
-          montantHT: montant,
-          notes,
-        },
-      });
-    }
+    return tx.bonCommande.create({
+      data: {
+        numero: await prochainNumeroBonCommande(tx, entrepriseBon),
+        entreprise: entrepriseBon,
+        chantierId,
+        paiementSousTraitantId: paiement.id,
+        intitule: `${chantier.nom} — ${libelle}`,
+        adresse: chantier.adresse.trim() || null,
+        sousTraitantId,
+        lignes: { create: [{ designation: libelle, detail: notes, unite: "Ens", quantite: 1, prixUnitaire: montant, ordre: 1 }] },
+      },
+      select: { id: true, numero: true },
+    });
   });
   revalidatePath(`/chantiers/${chantierId}`);
-  if (options.devisId) revalidatePath(`/devis/${options.devisId}`);
-}
-
-/** Supprime un brouillon de facture préparé depuis un acompte (n'affecte ni l'acompte ni Finance). */
-export async function supprimerFacturePreparee(facturePrepareeId: string) {
-  const brouillon = await prisma.facturePreparee.findUnique({
-    where: { id: facturePrepareeId },
-    select: { entreprise: true, devisId: true },
-  });
-  if (!brouillon) throw new Error("Brouillon de facture introuvable.");
-  await requireAcces("DEVIS", brouillon.entreprise as Entreprise);
-  await prisma.facturePreparee.delete({ where: { id: facturePrepareeId } });
-  revalidatePath(`/devis/${brouillon.devisId}`);
+  revalidatePath("/bons-commande");
+  return { bonCommande: bon };
 }
 
 export async function supprimerPaiementSousTraitant(chantierId: string, paiementId: string) {

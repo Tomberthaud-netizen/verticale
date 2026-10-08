@@ -29,8 +29,16 @@ export const ACCES_LABELS: Record<AccesOnglet, string> = {
 /**
  * Onglets non cloisonnés par entreprise : communs à VERTICALE et CB2B, un seul accès
  * (pas de distinction par société). Tous les autres onglets sont propres à une entreprise.
+ * Ce sont notamment les onglets de la partie "Gestion" (fournisseurs, sous-traitants, catalogue,
+ * administration) : mêmes données et mêmes accès quelle que soit l'entreprise affichée.
  */
-export const ONGLETS_SANS_ENTREPRISE: AccesOnglet[] = ["CALENDRIER", "ADMINISTRATION", "CATALOGUE"];
+export const ONGLETS_SANS_ENTREPRISE: AccesOnglet[] = [
+  "CALENDRIER",
+  "ADMINISTRATION",
+  "CATALOGUE",
+  "FOURNISSEURS",
+  "SOUS_TRAITANTS",
+];
 
 /** Sous-onglets de la fiche chantier (onglet CHANTIERS), pour un accès plus fin par personne. */
 export const SOUS_ONGLETS_CHANTIER: AccesSousOnglet[] = [

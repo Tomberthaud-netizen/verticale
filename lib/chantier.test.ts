@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculerPaiementsSousTraitant, estChantierComplet, type ChantierAvecRelations } from "./chantier";
+import { calculerPaiementsSousTraitant, estChantierComplet, libellePaiementSousTraitant, type ChantierAvecRelations } from "./chantier";
 
 function d(y: number, m: number, day: number) {
   return new Date(y, m - 1, day);
@@ -97,5 +97,13 @@ describe("estChantierComplet", () => {
 
   it("une équipe ou une adresse vide n'empêche pas d'être complet (champs informatifs, pas structurants — cf. chantiers existants avec adresse restée vide)", () => {
     expect(estChantierComplet({ ...chantierBase, equipe: "", adresse: "" })).toBe(true);
+  });
+});
+
+describe("libellePaiementSousTraitant", () => {
+  it("nomme Acompte le premier versement puis Situation N", () => {
+    expect(libellePaiementSousTraitant(0)).toBe("Acompte");
+    expect(libellePaiementSousTraitant(1)).toBe("Situation 1");
+    expect(libellePaiementSousTraitant(3)).toBe("Situation 3");
   });
 });

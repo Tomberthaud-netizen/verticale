@@ -78,37 +78,3 @@ export function estAlerteRetardEncaissement(
   const joursEcoules = Math.floor((aujourdHui.getTime() - dateFacture.getTime()) / MS_PAR_JOUR);
   return joursEcoules > seuilJours;
 }
-
-export interface ValeursInitialesFacture {
-  devisId: string;
-  chantierId: string | null;
-  clientNom: string;
-  clientAdresse: string;
-  montantHT: string;
-  tauxTVA: string;
-  notes: string;
-}
-
-/**
- * Valeurs de pré-remplissage du formulaire "Nouvelle facture" pour l'acompte d'un chantier : tout ce
- * qui est déjà connu (client et adresse du devis — à défaut, adresse du chantier —, taux de TVA du
- * devis, montant HT de l'acompte, notes de l'acompte). Les champs restent éditables dans le formulaire.
- */
-export function preparerValeursFactureAcompte(params: {
-  devis: { id: string; clientNom: string | null; clientAdresse: string | null; tauxTVA: number };
-  chantierId: string | null;
-  chantierAdresse: string | null;
-  montantHT: number;
-  notes: string | null;
-}): ValeursInitialesFacture {
-  const { devis, chantierId, chantierAdresse, montantHT, notes } = params;
-  return {
-    devisId: devis.id,
-    chantierId,
-    clientNom: devis.clientNom?.trim() ?? "",
-    clientAdresse: devis.clientAdresse?.trim() || chantierAdresse?.trim() || "",
-    montantHT: String(montantHT),
-    tauxTVA: String(devis.tauxTVA),
-    notes: notes?.trim() ?? "",
-  };
-}

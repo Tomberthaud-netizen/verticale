@@ -9,7 +9,8 @@ import { BRANDS } from "@/components/pdf/DevisDocument";
 
 export interface BonCommandeDocumentData {
   numero: string;
-  devisNumero: string;
+  /** Absent pour un bon créé directement à la saisie d'un acompte. */
+  devisNumero: string | null;
   intitule: string;
   entreprise: string;
   adresse: string | null;
@@ -147,10 +148,12 @@ export default function BonCommandeDocument({
             <Text style={styles.metaLabel}>Date : </Text>
             {format(bon.dateBon, "d MMMM yyyy", { locale: fr })}
           </Text>
-          <Text>
-            <Text style={styles.metaLabel}>Référence devis : </Text>
-            {bon.devisNumero}
-          </Text>
+          {bon.devisNumero && (
+            <Text>
+              <Text style={styles.metaLabel}>Référence devis : </Text>
+              {bon.devisNumero}
+            </Text>
+          )}
           <Text>
             <Text style={styles.metaLabel}>Objet : </Text>
             {bon.intitule}

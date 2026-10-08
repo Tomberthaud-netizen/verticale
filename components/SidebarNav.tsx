@@ -78,9 +78,20 @@ const ICONS: Record<AccesOnglet, ReactNode> = {
   ),
 };
 
+const ICONE_BON_COMMANDE: ReactNode = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="5" y="4" width="14" height="17" rx="2" />
+    <path d="M9 4V3h6v1M9 11l2 2 4-4M9 17h6" />
+  </svg>
+);
+
 interface NavItem {
   href: string;
+  /** Onglet dont l'accès (et, par défaut, le libellé/l'icône/l'ordre) commande cette entrée. */
   onglet: AccesOnglet;
+  /** Libellé et icône propres, pour une entrée qui n'est pas un onglet d'accès à part entière. */
+  label?: string;
+  icone?: ReactNode;
 }
 
 interface NavSection {
@@ -94,6 +105,8 @@ const SECTIONS: NavSection[] = [
     items: [
       { href: "/devis", onglet: "DEVIS" },
       { href: "/chantiers", onglet: "CHANTIERS" },
+      // Sous "Chantiers" : même accès que cet onglet, libellé et icône propres.
+      { href: "/bons-commande", onglet: "CHANTIERS", label: "Bons de commande", icone: ICONE_BON_COMMANDE },
     ],
   },
   {
@@ -147,7 +160,7 @@ export default function SidebarNav({
             </p>
             {items.map((item) => {
               const active = isActive(item.href);
-              const label = libelles[item.onglet];
+              const label = item.label ?? libelles[item.onglet];
               return (
                 <Link
                   key={item.href}
@@ -162,7 +175,7 @@ export default function SidebarNav({
                       : "border-transparent text-[#a7abb4] hover:text-white hover:bg-white/[0.04]"
                   }`}
                 >
-                  <span className="shrink-0 w-[18px] h-[18px]">{ICONS[item.onglet]}</span>
+                  <span className="shrink-0 w-[18px] h-[18px]">{item.icone ?? ICONS[item.onglet]}</span>
                   <span className={reduit ? "md:hidden" : ""}>{label}</span>
                 </Link>
               );

@@ -18,8 +18,6 @@ export interface CreerFactureInput {
   dateFacture: string;
   dateEcheance?: string;
   notes?: string;
-  /** Brouillon (FacturePreparee) dont cette facture est la complétion : supprimé à la création. */
-  facturePrepareeId?: string;
 }
 
 /** Entreprise propriétaire d'une facture — pour vérifier l'accès à une ressource précise. */
@@ -70,9 +68,6 @@ export async function creerFacture(data: CreerFactureInput) {
       },
     });
     const numero = genererNumeroFacture(entreprise, annee, sequenceDejaExistante);
-    if (data.facturePrepareeId) {
-      await tx.facturePreparee.deleteMany({ where: { id: data.facturePrepareeId, entreprise } });
-    }
     return tx.facture.create({
       data: {
         numero,
@@ -92,7 +87,6 @@ export async function creerFacture(data: CreerFactureInput) {
   });
 
   revalidatePath("/finance");
-  if (data.devisId) revalidatePath(`/devis/${data.devisId}`);
   return { id: facture.id };
 }
 

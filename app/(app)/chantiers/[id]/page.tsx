@@ -46,7 +46,7 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
   // normale (voir estChantierComplet dans lib/chantier.ts).
   if (!estChantierComplet(chantier)) {
     const [sousTraitants, dureesTypesTravaux, modelesRenovation, entrepriseActive] = await Promise.all([
-      getSousTraitantsNoms(chantier.entreprise as Entreprise),
+      getSousTraitantsNoms(),
       getDureesTypesTravaux(),
       getModelesRenovation(),
       getEntrepriseActive(),
@@ -90,7 +90,7 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
   }
 
   const [sousTraitants, modeleRenovation] = await Promise.all([
-    getSousTraitantsNoms(chantier.entreprise as Entreprise),
+    getSousTraitantsNoms(),
     getModeleRenovationParNom(chantier.equipe),
   ]);
 
@@ -250,7 +250,7 @@ export default async function ChantierDetailPage({ params }: PageProps<"/chantie
         chantierId={calcule.id}
         paiements={calcule.paiementsSousTraitant}
         sousTraitants={sousTraitants}
-        devis={chantier.devis.map((d) => ({ id: d.id, numero: d.numero, intitule: d.intitule }))}
+        entrepriseChantier={calcule.entreprise}
       />
     </section>
   );

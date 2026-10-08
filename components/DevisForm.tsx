@@ -15,6 +15,7 @@ import {
 } from "@/lib/devis";
 import { formaterMontantPrecis } from "@/lib/finances";
 import { filtrerDesignations } from "@/lib/suggestionPrix";
+import { UNITES_LIGNE as UNITES } from "@/constants/unites";
 
 interface LigneDraft {
   key: string;
@@ -29,7 +30,6 @@ interface LigneDraft {
   completionsOuvertes: boolean;
 }
 
-const UNITES = ["M²", "ML", "U", "Ens"] as const;
 
 let nextKey = 1;
 

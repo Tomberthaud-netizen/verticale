@@ -7,6 +7,7 @@ import {
   estDiviseurValide,
   estPourcentageValide,
   genererNumeroBonCommande,
+  validerLignesBonCommande,
 } from "./bonCommande";
 
 describe("calculerPrixUnitaireBonCommande", () => {
@@ -96,5 +97,32 @@ describe("estPourcentageValide", () => {
     expect(estPourcentageValide(12.5)).toBe(true);
     expect(estPourcentageValide(-1)).toBe(false);
     expect(estPourcentageValide(Number.NaN)).toBe(false);
+  });
+});
+
+describe("validerLignesBonCommande", () => {
+  const ligne = { designation: "Peinture murs", quantite: 2, prixUnitaire: 100 };
+
+  it("accepte des lignes complètes", () => {
+    expect(validerLignesBonCommande([ligne, { ...ligne, detail: "2 couches", unite: "M²" }])).toBeNull();
+  });
+
+  it("refuse un bon sans ligne", () => {
+    expect(validerLignesBonCommande([])).toMatch(/au moins une ligne/);
+  });
+
+  it("refuse une désignation vide ou blanche", () => {
+    expect(validerLignesBonCommande([{ ...ligne, designation: "   " }])).toMatch(/désignation/);
+  });
+
+  it("refuse une quantité nulle, négative ou non numérique", () => {
+    expect(validerLignesBonCommande([{ ...ligne, quantite: 0 }])).toMatch(/quantité/);
+    expect(validerLignesBonCommande([{ ...ligne, quantite: -1 }])).toMatch(/quantité/);
+    expect(validerLignesBonCommande([{ ...ligne, quantite: Number.NaN }])).toMatch(/quantité/);
+  });
+
+  it("refuse un prix unitaire non numérique mais accepte 0", () => {
+    expect(validerLignesBonCommande([{ ...ligne, prixUnitaire: Number.NaN }])).toMatch(/prix unitaire/);
+    expect(validerLignesBonCommande([{ ...ligne, prixUnitaire: 0 }])).toBeNull();
   });
 });

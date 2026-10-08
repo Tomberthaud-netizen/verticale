@@ -11,6 +11,8 @@ import {
   calculerTotalHTBonCommande,
   estDiviseurValide,
   estPourcentageValide,
+  validerLignesBonCommande,
+  type LigneBonCommandeSaisie,
 } from "@/lib/bonCommande";
 import { prochainNumeroBonCommande } from "@/lib/bonCommandeNumero";
 import { genererNumeroFacture } from "@/lib/factures";
@@ -90,6 +92,54 @@ export async function creerBonCommande(devisId: string, data: CreerBonCommandeIn
   revalidatePath(`/devis/${devisId}`);
   revalidatePath("/bons-commande");
   return { id: bon.id };
+}
+
+export interface ModifierBonCommandeInput {
+  lignes: LigneBonCommandeSaisie[];
+  /** Conditions particulières, reprises en bas du PDF. */
+  notes?: string;
+}
+
+/**
+ * Renseigne le contenu détaillé d'un bon de commande (désignation, détail, unité, quantité, prix
+ * de chaque ligne) et ses conditions particulières. Impossible une fois le bon transformé en
+ * facture : la facture a été calculée à partir de ses lignes.
+ */
+export async function modifierBonCommande(bonCommandeId: string, data: ModifierBonCommandeInput) {
+  const bon = await prisma.bonCommande.findUnique({
+    where: { id: bonCommandeId },
+    select: { entreprise: true, devisId: true, facture: { select: { numero: true } } },
+  });
+  if (!bon) throw new Error("Bon de commande introuvable.");
+  await exigerAccesBonsCommande(bon.entreprise as Entreprise);
+  if (bon.facture) {
+    throw new Error(`Ce bon de commande est déjà transformé en facture (${bon.facture.numero}) : il ne peut plus être modifié.`);
+  }
+  const erreur = validerLignesBonCommande(data.lignes);
+  if (erreur) throw new Error(erreur);
+
+  await prisma.$transaction(async (tx) => {
+    await tx.ligneBonCommande.deleteMany({ where: { bonCommandeId } });
+    await tx.bonCommande.update({
+      where: { id: bonCommandeId },
+      data: {
+        notes: data.notes?.trim() || null,
+        lignes: {
+          create: data.lignes.map((l, i) => ({
+            designation: l.designation.trim(),
+            detail: l.detail?.trim() || null,
+            unite: l.unite?.trim() || null,
+            quantite: l.quantite,
+            prixUnitaire: l.prixUnitaire,
+            ordre: i + 1,
+          })),
+        },
+      },
+    });
+  });
+
+  revalidatePath("/bons-commande");
+  if (bon.devisId) revalidatePath(`/devis/${bon.devisId}`);
 }
 
 export async function supprimerBonCommande(bonCommandeId: string) {

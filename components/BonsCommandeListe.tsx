@@ -8,10 +8,46 @@ import { fr } from "date-fns/locale";
 import {
   convertirBonCommandeEnFacture,
   envoyerBonCommandeParEmail,
+  modifierBonCommande,
   supprimerBonCommande,
 } from "@/app/bonsCommandeActions";
-import { calculerMontantFactureDepuisBonCommande, estPourcentageValide } from "@/lib/bonCommande";
+import {
+  calculerMontantFactureDepuisBonCommande,
+  calculerTotalHTBonCommande,
+  estPourcentageValide,
+} from "@/lib/bonCommande";
 import { formaterMontantPrecis } from "@/lib/finances";
+import { UNITES_LIGNE } from "@/constants/unites";
+
+interface LigneResume {
+  designation: string;
+  detail: string | null;
+  unite: string | null;
+  quantite: number;
+  prixUnitaire: number;
+}
+
+interface LigneEdition {
+  key: string;
+  designation: string;
+  detail: string;
+  unite: string;
+  quantite: string;
+  prixUnitaire: string;
+}
+
+let prochaineCle = 1;
+
+function versEdition(l: LigneResume): LigneEdition {
+  return {
+    key: String(prochaineCle++),
+    designation: l.designation,
+    detail: l.detail ?? "",
+    unite: l.unite ?? "",
+    quantite: String(l.quantite),
+    prixUnitaire: String(l.prixUnitaire),
+  };
+}
 
 interface BonResume {
   id: string;
@@ -22,7 +58,8 @@ interface BonResume {
   sousTraitantNom: string;
   sousTraitantEmail: string | null;
   totalHT: number;
-  lignes: { quantite: number; prixUnitaire: number }[];
+  lignes: LigneResume[];
+  notes: string | null;
   chantier: { id: string; nom: string } | null;
   devis: { id: string; numero: string } | null;
   facture: { id: string; numero: string } | null;
@@ -38,6 +75,50 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
   const [clientAdresse, setClientAdresse] = useState("");
   const [tauxTVA, setTauxTVA] = useState("20");
   const [creation, setCreation] = useState(false);
+  const [edition, setEdition] = useState(false);
+  const [lignesEdition, setLignesEdition] = useState<LigneEdition[]>([]);
+  const [notesEdition, setNotesEdition] = useState("");
+  const [enregistrement, setEnregistrement] = useState(false);
+
+  const totalEdition = calculerTotalHTBonCommande(
+    lignesEdition.map((l) => ({ quantite: Number(l.quantite) || 0, prixUnitaire: Number(l.prixUnitaire) || 0 }))
+  );
+
+  function ouvrirEdition() {
+    setLignesEdition(bon.lignes.map(versEdition));
+    setNotesEdition(bon.notes ?? "");
+    setErreur(null);
+    setFormFacture(false);
+    setEdition(true);
+  }
+
+  function modifierLigne(key: string, patch: Partial<LigneEdition>) {
+    setLignesEdition((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+  }
+
+  async function enregistrerEdition(e: React.FormEvent) {
+    e.preventDefault();
+    setErreur(null);
+    setEnregistrement(true);
+    try {
+      await modifierBonCommande(bon.id, {
+        lignes: lignesEdition.map((l) => ({
+          designation: l.designation,
+          detail: l.detail,
+          unite: l.unite,
+          quantite: Number(l.quantite),
+          prixUnitaire: Number(l.prixUnitaire),
+        })),
+        notes: notesEdition,
+      });
+      setEdition(false);
+      router.refresh();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
+    } finally {
+      setEnregistrement(false);
+    }
+  }
 
   const pourcentageNombre = Number(pourcentage);
   const apercuFacture =
@@ -138,6 +219,32 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
         </div>
       </div>
 
+      {!edition && (
+        <div className="border border-border rounded-md overflow-hidden">
+          <table className="w-full text-sm">
+            <tbody>
+              {bon.lignes.map((l, i) => (
+                <tr key={i} className="border-b border-border last:border-b-0">
+                  <td className="px-3 py-1.5">
+                    <span className="font-medium">{l.designation}</span>
+                    {l.detail && <span className="text-muted whitespace-pre-wrap"> — {l.detail}</span>}
+                  </td>
+                  <td className="px-3 py-1.5 text-muted text-right whitespace-nowrap tabular-nums">
+                    {l.quantite} {l.unite ?? ""} × {formaterMontantPrecis(l.prixUnitaire)}
+                  </td>
+                  <td className="px-3 py-1.5 text-right tabular-nums whitespace-nowrap">
+                    {formaterMontantPrecis(l.quantite * l.prixUnitaire)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {bon.notes && (
+            <p className="px-3 py-1.5 text-xs text-muted whitespace-pre-wrap border-t border-border">{bon.notes}</p>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-center gap-2">
         <a
           href={`/api/bons-commande/${bon.id}/pdf`}
@@ -154,7 +261,16 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
         >
           {enCours === "envoi" ? "Envoi…" : bon.envoyeLe ? "Renvoyer par e-mail" : "Envoyer par e-mail"}
         </button>
-        {peutFacturer && !bon.facture && (
+        {!bon.facture && !edition && (
+          <button
+            type="button"
+            onClick={ouvrirEdition}
+            className="rounded-md border border-border text-sm font-medium px-3 py-1.5 hover:bg-background transition-colors"
+          >
+            Modifier le détail
+          </button>
+        )}
+        {peutFacturer && !bon.facture && !edition && (
           <button
             type="button"
             onClick={() => setFormFacture((v) => !v)}
@@ -176,6 +292,121 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
         <p className="text-xs text-muted">
           Pas d&apos;e-mail pour ce sous-traitant : ajoutez-le dans sa fiche (onglet Sous-traitants) pour pouvoir lui envoyer le bon.
         </p>
+      )}
+
+      {edition && !bon.facture && (
+        <form onSubmit={enregistrerEdition} className="border-t border-border pt-3 flex flex-col gap-3">
+          <p className="text-sm text-muted">
+            Détaillez ce que couvre le bon de commande : chaque ligne apparaît sur le PDF envoyé au sous-traitant.
+          </p>
+          <div className="flex flex-col gap-2">
+            {lignesEdition.map((l) => (
+              <div
+                key={l.key}
+                className="grid gap-2 items-center border border-border rounded-md p-2 bg-background"
+                style={{ gridTemplateColumns: "1.4fr 1.4fr 5rem 5rem 7rem auto" }}
+              >
+                <input
+                  required
+                  value={l.designation}
+                  onChange={(e) => modifierLigne(l.key, { designation: e.target.value })}
+                  placeholder="Désignation"
+                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
+                />
+                <input
+                  value={l.detail}
+                  onChange={(e) => modifierLigne(l.key, { detail: e.target.value })}
+                  placeholder="Détail (optionnel)"
+                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
+                />
+                <select
+                  value={l.unite}
+                  onChange={(e) => modifierLigne(l.key, { unite: e.target.value })}
+                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
+                >
+                  <option value="">Unité</option>
+                  {l.unite && !(UNITES_LIGNE as readonly string[]).includes(l.unite) && (
+                    <option value={l.unite}>{l.unite}</option>
+                  )}
+                  {UNITES_LIGNE.map((u) => (
+                    <option key={u} value={u}>
+                      {u}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  required
+                  type="number"
+                  min={0.01}
+                  step="any"
+                  value={l.quantite}
+                  onChange={(e) => modifierLigne(l.key, { quantite: e.target.value })}
+                  placeholder="Qté"
+                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
+                />
+                <input
+                  required
+                  type="number"
+                  step="0.01"
+                  value={l.prixUnitaire}
+                  onChange={(e) => modifierLigne(l.key, { prixUnitaire: e.target.value })}
+                  placeholder="PU HT (€)"
+                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
+                />
+                <button
+                  type="button"
+                  onClick={() => setLignesEdition((prev) => prev.filter((x) => x.key !== l.key))}
+                  disabled={lignesEdition.length === 1}
+                  className="text-sm text-muted hover:text-red-600 disabled:opacity-30 disabled:hover:text-muted"
+                >
+                  Retirer
+                </button>
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() =>
+              setLignesEdition((prev) => [
+                ...prev,
+                { key: String(prochaineCle++), designation: "", detail: "", unite: "", quantite: "1", prixUnitaire: "" },
+              ])
+            }
+            className="self-start text-sm font-medium underline underline-offset-2"
+          >
+            + Ajouter une ligne
+          </button>
+          <label className="flex flex-col gap-1 text-sm font-medium">
+            Conditions particulières (optionnel)
+            <textarea
+              value={notesEdition}
+              onChange={(e) => setNotesEdition(e.target.value)}
+              rows={2}
+              className="border border-border rounded-md px-3 py-2 text-sm font-normal bg-background resize-y"
+            />
+          </label>
+          <p className="text-sm text-muted">
+            Total HT du bon de commande:{" "}
+            <strong className="text-foreground">{formaterMontantPrecis(totalEdition)}</strong>
+          </p>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={enregistrement}
+              className="rounded-md bg-foreground text-background text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {enregistrement ? "Enregistrement…" : "Enregistrer"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEdition(false)}
+              disabled={enregistrement}
+              className="text-sm text-muted hover:underline disabled:opacity-50"
+            >
+              Annuler
+            </button>
+          </div>
+        </form>
       )}
 
       {formFacture && !bon.facture && (

@@ -48,3 +48,26 @@ export function calculerMontantFactureDepuisBonCommande(
 export function estPourcentageValide(pourcentage: number): boolean {
   return Number.isFinite(pourcentage) && pourcentage >= 0;
 }
+
+export interface LigneBonCommandeSaisie {
+  designation: string;
+  detail?: string;
+  unite?: string;
+  quantite: number;
+  prixUnitaire: number;
+}
+
+/**
+ * Valide les lignes saisies pour un bon de commande : au moins une ligne, chacune avec une
+ * désignation, une quantité strictement positive et un prix unitaire numérique. Retourne le
+ * message d'erreur à afficher, ou null si tout est correct.
+ */
+export function validerLignesBonCommande(lignes: LigneBonCommandeSaisie[]): string | null {
+  if (lignes.length === 0) return "Ajoutez au moins une ligne au bon de commande.";
+  for (const ligne of lignes) {
+    if (!ligne.designation.trim()) return "Chaque ligne doit avoir une désignation.";
+    if (!Number.isFinite(ligne.quantite) || ligne.quantite <= 0) return "Chaque ligne doit avoir une quantité positive.";
+    if (!Number.isFinite(ligne.prixUnitaire)) return "Chaque ligne doit avoir un prix unitaire.";
+  }
+  return null;
+}

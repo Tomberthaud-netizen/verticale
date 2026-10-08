@@ -547,7 +547,7 @@ export function getBonsCommande(entreprise: Entreprise) {
     where: { entreprise },
     include: {
       sousTraitant: { select: { nom: true, email: true } },
-      lignes: { select: { quantite: true, prixUnitaire: true } },
+      lignes: { orderBy: { ordre: "asc" } },
       chantier: { select: { id: true, nom: true } },
       devis: { select: { id: true, numero: true } },
       facture: { select: { id: true, numero: true } },

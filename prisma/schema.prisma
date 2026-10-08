@@ -128,7 +128,6 @@ model Chantier {
   factures              Facture[]
   paiementsSousTraitant PaiementSousTraitant[]
   bonsCommande          BonCommande[]
-  facturesPreparees     FacturePreparee[]
   sousTraitant          SousTraitant?             @relation(fields: [sousTraitantId], references: [id], onDelete: SetNull)
 
   @@index([sousTraitantId])
@@ -148,10 +147,9 @@ model PaiementSousTraitant {
   // Informations annexes libres (référence, mode de paiement, remarque…).
   notes          String?  @db.Text
 
-  chantier        Chantier         @relation(fields: [chantierId], references: [id], onDelete: Cascade)
-  sousTraitant    SousTraitant     @relation(fields: [sousTraitantId], references: [id], onDelete: Restrict)
-  bonCommande     BonCommande?
-  facturePreparee FacturePreparee?
+  chantier     Chantier     @relation(fields: [chantierId], references: [id], onDelete: Cascade)
+  sousTraitant SousTraitant @relation(fields: [sousTraitantId], references: [id], onDelete: Restrict)
+  bonCommande  BonCommande?
 
   @@index([chantierId])
   @@index([sousTraitantId])
@@ -269,13 +267,12 @@ model Devis {
   coutMateriauxHT  Float?
   coutHonorairesHT Float?
 
-  chantier          Chantier?         @relation(fields: [chantierId], references: [id], onDelete: SetNull)
-  responsable       Personne?         @relation(fields: [responsableId], references: [id], onDelete: SetNull)
-  lignes            LigneDevis[]
-  evenements        EvenementDevis[]
-  factures          Facture[]
-  bonsCommande      BonCommande[]
-  facturesPreparees FacturePreparee[]
+  chantier     Chantier?        @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+  responsable  Personne?        @relation(fields: [responsableId], references: [id], onDelete: SetNull)
+  lignes       LigneDevis[]
+  evenements   EvenementDevis[]
+  factures     Facture[]
+  bonsCommande BonCommande[]
 
   @@index([chantierId])
   @@index([responsableId])
@@ -705,25 +702,4 @@ model LigneBonCommande {
   bonCommande BonCommande @relation(fields: [bonCommandeId], references: [id], onDelete: Cascade)
 
   @@index([bonCommandeId])
-}
-
-/// OBSOLÈTE — plus utilisé par le code (fonctionnalité "factures à compléter" abandonnée). Table
-/// conservée pour cette version afin que le site en ligne ne plante pas pendant le déploiement ;
-/// supprimée dans la migration suivante.
-model FacturePreparee {
-  id                     String   @id @default(cuid())
-  entreprise             String   @default("VERTICALE")
-  devisId                String
-  chantierId             String?
-  paiementSousTraitantId String   @unique
-  montantHT              Float
-  notes                  String?  @db.Text
-  createdAt              DateTime @default(now())
-
-  devis    Devis                @relation(fields: [devisId], references: [id], onDelete: Cascade)
-  chantier Chantier?            @relation(fields: [chantierId], references: [id], onDelete: SetNull)
-  paiement PaiementSousTraitant @relation(fields: [paiementSousTraitantId], references: [id], onDelete: Cascade)
-
-  @@index([devisId])
-  @@index([chantierId])
 }

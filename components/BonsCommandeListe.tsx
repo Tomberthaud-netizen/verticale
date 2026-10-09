@@ -69,6 +69,13 @@ function LigneBon({
   const [tauxTVA, setTauxTVA] = useState("20");
   const [creation, setCreation] = useState(false);
   const [edition, setEdition] = useState(false);
+  // Le contenu du bon n'est affiché qu'à la demande : un clic sur la carte l'ouvre ou le referme.
+  const [detailOuvert, setDetailOuvert] = useState(false);
+
+  function basculerDetail(e: React.MouseEvent) {
+    if ((e.target as HTMLElement).closest("a, button, input, select, textarea, form")) return;
+    setDetailOuvert((v) => !v);
+  }
   const [lignesEdition, setLignesEdition] = useState<LigneEdition[]>([]);
   const [notesEdition, setNotesEdition] = useState("");
   const [enregistrement, setEnregistrement] = useState(false);
@@ -194,7 +201,19 @@ function LigneBon({
 
   return (
     <li className="border border-border rounded-lg bg-surface p-4 flex flex-col gap-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div
+        role="button"
+        tabIndex={0}
+        aria-expanded={detailOuvert}
+        onClick={basculerDetail}
+        onKeyDown={(e) => {
+          if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+            e.preventDefault();
+            setDetailOuvert((v) => !v);
+          }
+        }}
+        className="flex flex-wrap items-start justify-between gap-3 cursor-pointer"
+      >
         <div className="min-w-0">
           {editionNumero ? (
             <form onSubmit={enregistrerNumero} className="flex flex-wrap items-center gap-1.5">
@@ -281,6 +300,11 @@ function LigneBon({
               </Link>
             )}
           </p>
+          {!edition && (
+            <p className="text-xs text-muted mt-1" aria-hidden>
+              {detailOuvert ? "▾ Masquer le détail" : `▸ Voir le détail (${bon.lignes.length} ligne${bon.lignes.length > 1 ? "s" : ""})`}
+            </p>
+          )}
         </div>
         <div className="text-right">
           <p className="text-lg font-semibold tabular-nums">{formaterMontantPrecis(bon.totalHT)} HT</p>
@@ -306,7 +330,7 @@ function LigneBon({
         </div>
       </div>
 
-      {!edition && (
+      {!edition && detailOuvert && (
         <div className="border border-border rounded-md overflow-hidden">
           <table className="w-full text-sm">
             <tbody>

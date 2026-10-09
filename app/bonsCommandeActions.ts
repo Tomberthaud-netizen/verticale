@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { getEntrepriseActive } from "@/lib/entrepriseActive";
 import { aAcces, getPersonneConnectee, requireAcces } from "@/lib/authContext";
 import type { Entreprise } from "@/constants/entreprises";
 import {
@@ -92,6 +93,71 @@ export async function creerBonCommande(devisId: string, data: CreerBonCommandeIn
   revalidatePath(`/devis/${devisId}`);
   revalidatePath("/bons-commande");
   return { id: bon.id };
+}
+
+export interface CreerBonCommandeLibreInput {
+  sousTraitantId: string;
+  /** Chantier concerné (optionnel) : son nom et son adresse servent de valeurs par défaut. */
+  chantierId?: string | null;
+  intitule: string;
+  adresse?: string;
+  lignes: LigneBonCommandeSaisie[];
+  notes?: string;
+}
+
+/**
+ * Bon de commande saisi à la main depuis l'onglet "Bons de commande", au nom de l'entreprise
+ * active : sans devis ni acompte, avec ses lignes rédigées directement.
+ */
+export async function creerBonCommandeLibre(data: CreerBonCommandeLibreInput) {
+  const entreprise = await getEntrepriseActive();
+  await exigerAccesBonsCommande(entreprise);
+
+  if (!data.sousTraitantId) throw new Error("Choisissez le sous-traitant concerné par ce bon de commande.");
+  // Les sous-traitants sont communs à toutes les entreprises : on vérifie seulement qu'il existe.
+  const sousTraitant = await prisma.sousTraitant.findUnique({ where: { id: data.sousTraitantId }, select: { id: true } });
+  if (!sousTraitant) throw new Error("Sous-traitant introuvable.");
+
+  let chantier: { id: string; nom: string; adresse: string } | null = null;
+  if (data.chantierId) {
+    chantier = await prisma.chantier.findFirst({
+      where: { id: data.chantierId, entreprise },
+      select: { id: true, nom: true, adresse: true },
+    });
+    if (!chantier) throw new Error("Chantier introuvable pour cette entreprise.");
+  }
+
+  const intitule = data.intitule.trim() || chantier?.nom || "";
+  if (!intitule) throw new Error("Indiquez l'objet du bon de commande (ou choisissez un chantier).");
+  const erreur = validerLignesBonCommande(data.lignes);
+  if (erreur) throw new Error(erreur);
+
+  const bon = await prisma.$transaction(async (tx) => {
+    return tx.bonCommande.create({
+      data: {
+        numero: await prochainNumeroBonCommande(tx, entreprise),
+        entreprise,
+        chantierId: chantier?.id ?? null,
+        intitule,
+        adresse: data.adresse?.trim() || chantier?.adresse?.trim() || null,
+        sousTraitantId: data.sousTraitantId,
+        notes: data.notes?.trim() || null,
+        lignes: {
+          create: data.lignes.map((l, i) => ({
+            designation: l.designation.trim(),
+            detail: l.detail?.trim() || null,
+            unite: l.unite?.trim() || null,
+            quantite: l.quantite,
+            prixUnitaire: l.prixUnitaire,
+            ordre: i + 1,
+          })),
+        },
+      },
+    });
+  });
+
+  revalidatePath("/bons-commande");
+  return { id: bon.id, numero: bon.numero };
 }
 
 export interface ModifierBonCommandeInput {

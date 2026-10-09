@@ -541,6 +541,15 @@ export function getBonsCommandeDuDevis(devisId: string) {
   });
 }
 
+/** Chantiers d'une entreprise (id, nom, adresse), pour rattacher un bon de commande saisi à la main. */
+export function getChantiersPourBonCommande(entreprise: Entreprise) {
+  return prisma.chantier.findMany({
+    where: { entreprise },
+    select: { id: true, nom: true, adresse: true },
+    orderBy: { nom: "asc" },
+  });
+}
+
 /** Tous les bons de commande émis au nom d'une entreprise, pour l'onglet "Bons de commande". */
 export function getBonsCommande(entreprise: Entreprise) {
   return prisma.bonCommande.findMany({

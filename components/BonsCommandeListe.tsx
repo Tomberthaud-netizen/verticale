@@ -17,7 +17,12 @@ import {
   estPourcentageValide,
 } from "@/lib/bonCommande";
 import { formaterMontantPrecis } from "@/lib/finances";
-import { UNITES_LIGNE } from "@/constants/unites";
+import LignesBonCommandeEditeur, {
+  lignesEditionVersSaisie,
+  versEdition,
+  type LigneEdition,
+} from "@/components/LignesBonCommandeEditeur";
+import NouveauBonCommandeForm, { type ChoixNouveauBon } from "@/components/NouveauBonCommandeForm";
 
 interface LigneResume {
   designation: string;
@@ -25,28 +30,6 @@ interface LigneResume {
   unite: string | null;
   quantite: number;
   prixUnitaire: number;
-}
-
-interface LigneEdition {
-  key: string;
-  designation: string;
-  detail: string;
-  unite: string;
-  quantite: string;
-  prixUnitaire: string;
-}
-
-let prochaineCle = 1;
-
-function versEdition(l: LigneResume): LigneEdition {
-  return {
-    key: String(prochaineCle++),
-    designation: l.designation,
-    detail: l.detail ?? "",
-    unite: l.unite ?? "",
-    quantite: String(l.quantite),
-    prixUnitaire: String(l.prixUnitaire),
-  };
 }
 
 interface BonResume {
@@ -92,23 +75,13 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
     setEdition(true);
   }
 
-  function modifierLigne(key: string, patch: Partial<LigneEdition>) {
-    setLignesEdition((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
-  }
-
   async function enregistrerEdition(e: React.FormEvent) {
     e.preventDefault();
     setErreur(null);
     setEnregistrement(true);
     try {
       await modifierBonCommande(bon.id, {
-        lignes: lignesEdition.map((l) => ({
-          designation: l.designation,
-          detail: l.detail,
-          unite: l.unite,
-          quantite: Number(l.quantite),
-          prixUnitaire: Number(l.prixUnitaire),
-        })),
+        lignes: lignesEditionVersSaisie(lignesEdition),
         notes: notesEdition,
       });
       setEdition(false);
@@ -299,83 +272,7 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
           <p className="text-sm text-muted">
             Détaillez ce que couvre le bon de commande : chaque ligne apparaît sur le PDF envoyé au sous-traitant.
           </p>
-          <div className="flex flex-col gap-2">
-            {lignesEdition.map((l) => (
-              <div
-                key={l.key}
-                className="grid gap-2 items-center border border-border rounded-md p-2 bg-background"
-                style={{ gridTemplateColumns: "1.4fr 1.4fr 5rem 5rem 7rem auto" }}
-              >
-                <input
-                  required
-                  value={l.designation}
-                  onChange={(e) => modifierLigne(l.key, { designation: e.target.value })}
-                  placeholder="Désignation"
-                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
-                />
-                <input
-                  value={l.detail}
-                  onChange={(e) => modifierLigne(l.key, { detail: e.target.value })}
-                  placeholder="Détail (optionnel)"
-                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
-                />
-                <select
-                  value={l.unite}
-                  onChange={(e) => modifierLigne(l.key, { unite: e.target.value })}
-                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
-                >
-                  <option value="">Unité</option>
-                  {l.unite && !(UNITES_LIGNE as readonly string[]).includes(l.unite) && (
-                    <option value={l.unite}>{l.unite}</option>
-                  )}
-                  {UNITES_LIGNE.map((u) => (
-                    <option key={u} value={u}>
-                      {u}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  required
-                  type="number"
-                  min={0.01}
-                  step="any"
-                  value={l.quantite}
-                  onChange={(e) => modifierLigne(l.key, { quantite: e.target.value })}
-                  placeholder="Qté"
-                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
-                />
-                <input
-                  required
-                  type="number"
-                  step="0.01"
-                  value={l.prixUnitaire}
-                  onChange={(e) => modifierLigne(l.key, { prixUnitaire: e.target.value })}
-                  placeholder="PU HT (€)"
-                  className="border border-border rounded-md px-2 py-1.5 text-sm bg-surface min-w-0"
-                />
-                <button
-                  type="button"
-                  onClick={() => setLignesEdition((prev) => prev.filter((x) => x.key !== l.key))}
-                  disabled={lignesEdition.length === 1}
-                  className="text-sm text-muted hover:text-red-600 disabled:opacity-30 disabled:hover:text-muted"
-                >
-                  Retirer
-                </button>
-              </div>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() =>
-              setLignesEdition((prev) => [
-                ...prev,
-                { key: String(prochaineCle++), designation: "", detail: "", unite: "", quantite: "1", prixUnitaire: "" },
-              ])
-            }
-            className="self-start text-sm font-medium underline underline-offset-2"
-          >
-            + Ajouter une ligne
-          </button>
+          <LignesBonCommandeEditeur lignes={lignesEdition} onChange={setLignesEdition} />
           <label className="flex flex-col gap-1 text-sm font-medium">
             Conditions particulières (optionnel)
             <textarea
@@ -482,20 +379,41 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
   );
 }
 
-export default function BonsCommandeListe({ bons, peutFacturer }: { bons: BonResume[]; peutFacturer: boolean }) {
-  if (bons.length === 0) {
-    return (
-      <p className="text-sm text-muted">
-        Aucun bon de commande pour le moment. Saisissez un acompte de sous-traitant sur un chantier (onglet Finances ›
-        Sous-traitant) : le bon de commande est créé automatiquement.
-      </p>
-    );
-  }
+export default function BonsCommandeListe({
+  bons,
+  peutFacturer,
+  choix,
+}: {
+  bons: BonResume[];
+  peutFacturer: boolean;
+  choix: ChoixNouveauBon;
+}) {
+  const [creation, setCreation] = useState(false);
   return (
-    <ul className="flex flex-col gap-3">
-      {bons.map((bon) => (
-        <LigneBon key={bon.id} bon={bon} peutFacturer={peutFacturer} />
-      ))}
-    </ul>
+    <div className="flex flex-col gap-4">
+      {creation ? (
+        <NouveauBonCommandeForm {...choix} onClose={() => setCreation(false)} />
+      ) : (
+        <button
+          type="button"
+          onClick={() => setCreation(true)}
+          className="self-start rounded-md bg-foreground text-background text-sm font-medium px-4 py-2 hover:opacity-90 transition-opacity"
+        >
+          + Nouveau bon de commande
+        </button>
+      )}
+      {bons.length === 0 ? (
+        <p className="text-sm text-muted">
+          Aucun bon de commande pour le moment. Créez-en un ci-dessus, ou saisissez un acompte de sous-traitant sur un
+          chantier (onglet Finances › Sous-traitant) : le bon de commande est créé automatiquement.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {bons.map((bon) => (
+            <LigneBon key={bon.id} bon={bon} peutFacturer={peutFacturer} />
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }

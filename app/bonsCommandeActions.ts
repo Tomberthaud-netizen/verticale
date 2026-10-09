@@ -208,6 +208,26 @@ export async function modifierBonCommande(bonCommandeId: string, data: ModifierB
   if (bon.devisId) revalidatePath(`/devis/${bon.devisId}`);
 }
 
+/** Change la date du bon de commande (affichée sur le PDF). Réservé à l'administrateur principal. */
+export async function modifierDateBonCommande(bonCommandeId: string, date: string) {
+  const bon = await prisma.bonCommande.findUnique({
+    where: { id: bonCommandeId },
+    select: { entreprise: true, devisId: true },
+  });
+  if (!bon) throw new Error("Bon de commande introuvable.");
+  const personne = await exigerAccesBonsCommande(bon.entreprise as Entreprise);
+  // Revérifié côté serveur : le masquage du bouton côté client ne suffit pas.
+  if (!personne.estAdminPrincipal) {
+    throw new Error("Seul l'administrateur principal peut modifier la date d'un bon de commande.");
+  }
+  const nouvelleDate = new Date(date);
+  if (!date || Number.isNaN(nouvelleDate.getTime())) throw new Error("Date invalide.");
+
+  await prisma.bonCommande.update({ where: { id: bonCommandeId }, data: { dateBon: nouvelleDate } });
+  revalidatePath("/bons-commande");
+  if (bon.devisId) revalidatePath(`/devis/${bon.devisId}`);
+}
+
 export async function supprimerBonCommande(bonCommandeId: string) {
   const bon = await prisma.bonCommande.findUnique({
     where: { id: bonCommandeId },

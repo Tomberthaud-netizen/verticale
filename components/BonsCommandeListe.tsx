@@ -9,6 +9,7 @@ import {
   convertirBonCommandeEnFacture,
   envoyerBonCommandeParEmail,
   modifierBonCommande,
+  modifierDateBonCommande,
   supprimerBonCommande,
 } from "@/app/bonsCommandeActions";
 import {
@@ -48,7 +49,15 @@ interface BonResume {
   facture: { id: string; numero: string } | null;
 }
 
-function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean }) {
+function LigneBon({
+  bon,
+  peutFacturer,
+  peutChangerDate,
+}: {
+  bon: BonResume;
+  peutFacturer: boolean;
+  peutChangerDate: boolean;
+}) {
   const router = useRouter();
   const [enCours, setEnCours] = useState<"envoi" | "suppression" | null>(null);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -62,6 +71,24 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
   const [lignesEdition, setLignesEdition] = useState<LigneEdition[]>([]);
   const [notesEdition, setNotesEdition] = useState("");
   const [enregistrement, setEnregistrement] = useState(false);
+  const [editionDate, setEditionDate] = useState(false);
+  const [dateSaisie, setDateSaisie] = useState("");
+  const [enregistrementDate, setEnregistrementDate] = useState(false);
+
+  async function enregistrerDate(e: React.FormEvent) {
+    e.preventDefault();
+    setErreur(null);
+    setEnregistrementDate(true);
+    try {
+      await modifierDateBonCommande(bon.id, dateSaisie);
+      setEditionDate(false);
+      router.refresh();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
+    } finally {
+      setEnregistrementDate(false);
+    }
+  }
 
   const totalEdition = calculerTotalHTBonCommande(
     lignesEdition.map((l) => ({ quantite: Number(l.quantite) || 0, prixUnitaire: Number(l.prixUnitaire) || 0 }))
@@ -155,7 +182,40 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
           </p>
           <p className="text-sm text-muted">{bon.intitule}</p>
           <p className="text-xs text-muted mt-0.5 flex flex-wrap gap-x-3">
-            <span>{format(bon.dateBon, "d MMM yyyy", { locale: fr })}</span>
+            {editionDate ? (
+              <form onSubmit={enregistrerDate} className="inline-flex items-center gap-1.5">
+                <input
+                  type="date"
+                  required
+                  value={dateSaisie}
+                  onChange={(e) => setDateSaisie(e.target.value)}
+                  className="border border-border rounded-md px-2 py-0.5 text-xs bg-background"
+                />
+                <button type="submit" disabled={enregistrementDate} className="font-medium underline disabled:opacity-50">
+                  {enregistrementDate ? "…" : "OK"}
+                </button>
+                <button type="button" onClick={() => setEditionDate(false)} disabled={enregistrementDate} className="underline">
+                  Annuler
+                </button>
+              </form>
+            ) : (
+              <span>
+                {format(bon.dateBon, "d MMM yyyy", { locale: fr })}
+                {peutChangerDate && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDateSaisie(bon.dateBon.toISOString().slice(0, 10));
+                      setErreur(null);
+                      setEditionDate(true);
+                    }}
+                    className="ml-1.5 underline"
+                  >
+                    Modifier la date
+                  </button>
+                )}
+              </span>
+            )}
             {bon.chantier && (
               <Link href={`/chantiers/${bon.chantier.id}`} className="underline">
                 Chantier {bon.chantier.nom}
@@ -382,10 +442,12 @@ function LigneBon({ bon, peutFacturer }: { bon: BonResume; peutFacturer: boolean
 export default function BonsCommandeListe({
   bons,
   peutFacturer,
+  peutChangerDate,
   choix,
 }: {
   bons: BonResume[];
   peutFacturer: boolean;
+  peutChangerDate: boolean;
   choix: ChoixNouveauBon;
 }) {
   const [creation, setCreation] = useState(false);
@@ -410,7 +472,7 @@ export default function BonsCommandeListe({
       ) : (
         <ul className="flex flex-col gap-3">
           {bons.map((bon) => (
-            <LigneBon key={bon.id} bon={bon} peutFacturer={peutFacturer} />
+            <LigneBon key={bon.id} bon={bon} peutFacturer={peutFacturer} peutChangerDate={peutChangerDate} />
           ))}
         </ul>
       )}

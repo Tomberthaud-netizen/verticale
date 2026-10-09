@@ -24,6 +24,7 @@ export default async function BonsCommandePage() {
       </div>
       <BonsCommandeListe
         peutFacturer={aAcces(personne, "FINANCE", entreprise)}
+        peutChangerDate={personne.estAdminPrincipal}
         choix={{ sousTraitants, chantiers }}
         bons={bons.map((b) => ({
           id: b.id,

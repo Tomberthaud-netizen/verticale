@@ -76,6 +76,8 @@ export default async function CalendrierPage() {
       nom: c.nom,
       etat: c.etat,
       entreprise: c.entreprise,
+      dateDebut: c.dateDebut,
+      dateFin: c.dateFinCalculee,
       row: {
         id: c.id,
         label: c.nom,
@@ -84,7 +86,15 @@ export default async function CalendrierPage() {
         segments: construireSegments(c),
       },
     })),
-    ...devisRows.map(({ id, nom, etat, entreprise, row }) => ({ id, nom, etat, entreprise, row })),
+    ...devisRows.map(({ id, nom, etat, entreprise, dateDebut, dateFinCalculee, row }) => ({
+      id,
+      nom,
+      etat,
+      entreprise,
+      dateDebut,
+      dateFin: dateFinCalculee,
+      row,
+    })),
   ];
 
   const chantiersCarte = chantiersCalcules

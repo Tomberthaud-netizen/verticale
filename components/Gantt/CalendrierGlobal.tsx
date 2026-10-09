@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import GanttChart, { HAUTEUR_IMPRESSION_CIBLE, type GanttRow } from "./GanttChart";
 import type { EtatChantier } from "@/lib/dates";
+import { construireEchelleJoursOuvres } from "@/lib/gantt";
 import { ENTREPRISES } from "@/constants/entreprises";
 
 interface ChantierRow {
@@ -10,6 +11,8 @@ interface ChantierRow {
   nom: string;
   etat: EtatChantier;
   entreprise: string;
+  dateDebut: Date;
+  dateFin: Date;
   row: GanttRow;
 }
 
@@ -33,6 +36,16 @@ export default function CalendrierGlobal({ echelle, chantiers }: Props) {
     () => chantiers.filter((c) => filtre === "TOUS" || c.etat === filtre),
     [chantiers, filtre]
   );
+
+  // Avec un filtre d'état, le planning se resserre sur les seules lignes affichées : il commence
+  // au premier jour de la ligne dont la date de début est la plus ancienne et s'arrête à la fin
+  // de la plus tardive (ex. "En cours" ne montre plus les mois des chantiers terminés).
+  const echelleAffichee = useMemo(() => {
+    if (filtre === "TOUS" || chantiersFiltres.length === 0) return echelle;
+    const debut = chantiersFiltres.reduce((min, c) => (c.dateDebut < min ? c.dateDebut : min), chantiersFiltres[0].dateDebut);
+    const fin = chantiersFiltres.reduce((max, c) => (c.dateFin > max ? c.dateFin : max), chantiersFiltres[0].dateFin);
+    return construireEchelleJoursOuvres(debut, fin);
+  }, [echelle, filtre, chantiersFiltres]);
 
   const entreprises = useMemo(() => {
     const connues = ENTREPRISES.filter((ent) => chantiersFiltres.some((c) => c.entreprise === ent));
@@ -108,7 +121,7 @@ export default function CalendrierGlobal({ echelle, chantiers }: Props) {
             <section key={ent} className={`flex flex-col gap-2 ${masquerImpression ? "print:hidden" : ""}`}>
               <h2 className="text-sm font-semibold text-muted uppercase tracking-wide">{ent}</h2>
               <GanttChart
-                echelle={echelle}
+                echelle={echelleAffichee}
                 rows={rows}
                 showRowLabels
                 today={new Date()}

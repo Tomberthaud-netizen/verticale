@@ -10,6 +10,7 @@ import {
   envoyerBonCommandeParEmail,
   modifierBonCommande,
   modifierDateBonCommande,
+  modifierNumeroBonCommande,
   supprimerBonCommande,
 } from "@/app/bonsCommandeActions";
 import {
@@ -52,11 +53,11 @@ interface BonResume {
 function LigneBon({
   bon,
   peutFacturer,
-  peutChangerDate,
+  estAdminPrincipal,
 }: {
   bon: BonResume;
   peutFacturer: boolean;
-  peutChangerDate: boolean;
+  estAdminPrincipal: boolean;
 }) {
   const router = useRouter();
   const [enCours, setEnCours] = useState<"envoi" | "suppression" | null>(null);
@@ -71,9 +72,27 @@ function LigneBon({
   const [lignesEdition, setLignesEdition] = useState<LigneEdition[]>([]);
   const [notesEdition, setNotesEdition] = useState("");
   const [enregistrement, setEnregistrement] = useState(false);
+  const [editionNumero, setEditionNumero] = useState(false);
+  const [numeroSaisi, setNumeroSaisi] = useState("");
+  const [enregistrementNumero, setEnregistrementNumero] = useState(false);
   const [editionDate, setEditionDate] = useState(false);
   const [dateSaisie, setDateSaisie] = useState("");
   const [enregistrementDate, setEnregistrementDate] = useState(false);
+
+  async function enregistrerNumero(e: React.FormEvent) {
+    e.preventDefault();
+    setErreur(null);
+    setEnregistrementNumero(true);
+    try {
+      await modifierNumeroBonCommande(bon.id, numeroSaisi);
+      setEditionNumero(false);
+      router.refresh();
+    } catch (err) {
+      setErreur(err instanceof Error ? err.message : "Une erreur est survenue.");
+    } finally {
+      setEnregistrementNumero(false);
+    }
+  }
 
   async function enregistrerDate(e: React.FormEvent) {
     e.preventDefault();
@@ -177,9 +196,44 @@ function LigneBon({
     <li className="border border-border rounded-lg bg-surface p-4 flex flex-col gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="font-semibold">
-            {bon.numero} <span className="text-muted font-normal">· {bon.sousTraitantNom}</span>
-          </p>
+          {editionNumero ? (
+            <form onSubmit={enregistrerNumero} className="flex flex-wrap items-center gap-1.5">
+              <input
+                required
+                value={numeroSaisi}
+                onChange={(e) => setNumeroSaisi(e.target.value)}
+                className="border border-border rounded-md px-2 py-0.5 text-sm font-semibold bg-background"
+              />
+              <button type="submit" disabled={enregistrementNumero} className="text-xs font-medium underline disabled:opacity-50">
+                {enregistrementNumero ? "…" : "OK"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditionNumero(false)}
+                disabled={enregistrementNumero}
+                className="text-xs underline text-muted"
+              >
+                Annuler
+              </button>
+            </form>
+          ) : (
+            <p className="font-semibold">
+              {bon.numero} <span className="text-muted font-normal">· {bon.sousTraitantNom}</span>
+              {estAdminPrincipal && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNumeroSaisi(bon.numero);
+                    setErreur(null);
+                    setEditionNumero(true);
+                  }}
+                  className="ml-2 text-xs font-normal text-muted underline"
+                >
+                  Modifier le numéro
+                </button>
+              )}
+            </p>
+          )}
           <p className="text-sm text-muted">{bon.intitule}</p>
           <p className="text-xs text-muted mt-0.5 flex flex-wrap gap-x-3">
             {editionDate ? (
@@ -201,7 +255,7 @@ function LigneBon({
             ) : (
               <span>
                 {format(bon.dateBon, "d MMM yyyy", { locale: fr })}
-                {peutChangerDate && (
+                {estAdminPrincipal && (
                   <button
                     type="button"
                     onClick={() => {
@@ -442,12 +496,12 @@ function LigneBon({
 export default function BonsCommandeListe({
   bons,
   peutFacturer,
-  peutChangerDate,
+  estAdminPrincipal,
   choix,
 }: {
   bons: BonResume[];
   peutFacturer: boolean;
-  peutChangerDate: boolean;
+  estAdminPrincipal: boolean;
   choix: ChoixNouveauBon;
 }) {
   const [creation, setCreation] = useState(false);
@@ -472,7 +526,7 @@ export default function BonsCommandeListe({
       ) : (
         <ul className="flex flex-col gap-3">
           {bons.map((bon) => (
-            <LigneBon key={bon.id} bon={bon} peutFacturer={peutFacturer} peutChangerDate={peutChangerDate} />
+            <LigneBon key={bon.id} bon={bon} peutFacturer={peutFacturer} estAdminPrincipal={estAdminPrincipal} />
           ))}
         </ul>
       )}

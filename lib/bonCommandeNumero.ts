@@ -1,5 +1,5 @@
 import type { Prisma } from "@prisma/client";
-import { genererNumeroBonCommande } from "./bonCommande";
+import { genererNumeroBonCommande, sequenceMaxBonCommande } from "./bonCommande";
 import { prefixeEntreprise } from "./devis";
 
 /** Prochain numéro de bon de commande de l'entreprise pour l'année en cours (à appeler dans la transaction de création). */
@@ -8,8 +8,10 @@ export async function prochainNumeroBonCommande(
   entreprise: string,
   annee: number = new Date().getFullYear()
 ): Promise<string> {
-  const sequenceDejaExistante = await tx.bonCommande.count({
-    where: { entreprise, numero: { startsWith: `BC-${prefixeEntreprise(entreprise)}-${annee}-` } },
+  const prefixe = `BC-${prefixeEntreprise(entreprise)}-${annee}-`;
+  const existants = await tx.bonCommande.findMany({
+    where: { numero: { startsWith: prefixe } },
+    select: { numero: true },
   });
-  return genererNumeroBonCommande(entreprise, annee, sequenceDejaExistante);
+  return genererNumeroBonCommande(entreprise, annee, sequenceMaxBonCommande(existants.map((b) => b.numero), prefixe));
 }

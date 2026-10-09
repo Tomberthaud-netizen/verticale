@@ -7,6 +7,7 @@ import {
   estDiviseurValide,
   estPourcentageValide,
   genererNumeroBonCommande,
+  sequenceMaxBonCommande,
   validerLignesBonCommande,
 } from "./bonCommande";
 
@@ -124,5 +125,25 @@ describe("validerLignesBonCommande", () => {
   it("refuse un prix unitaire non numérique mais accepte 0", () => {
     expect(validerLignesBonCommande([{ ...ligne, prixUnitaire: Number.NaN }])).toMatch(/prix unitaire/);
     expect(validerLignesBonCommande([{ ...ligne, prixUnitaire: 0 }])).toBeNull();
+  });
+});
+
+describe("sequenceMaxBonCommande", () => {
+  const prefixe = "BC-CB2B-2026-";
+
+  it("retourne 0 sans numéro existant", () => {
+    expect(sequenceMaxBonCommande([], prefixe)).toBe(0);
+  });
+
+  it("retourne le plus grand numéro de séquence", () => {
+    expect(sequenceMaxBonCommande(["BC-CB2B-2026-0001", "BC-CB2B-2026-0007", "BC-CB2B-2026-0003"], prefixe)).toBe(7);
+  });
+
+  it("ignore les numéros renommés à la main", () => {
+    expect(sequenceMaxBonCommande(["BC-CB2B-2026-0002", "BC-CB2B-2026-A", "BC-CB2B-2026-12bis"], prefixe)).toBe(2);
+  });
+
+  it("ignore les numéros d'un autre préfixe", () => {
+    expect(sequenceMaxBonCommande(["BC-VRT-2026-0009", "BC-CB2B-2025-0050"], prefixe)).toBe(0);
   });
 });

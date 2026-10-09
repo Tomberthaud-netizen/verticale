@@ -21,6 +21,21 @@ export function genererNumeroBonCommande(entreprise: string, annee: number, sequ
 }
 
 /**
+ * Plus grand numéro de séquence déjà utilisé parmi les numéros commençant par `prefixe` (0 s'il n'y
+ * en a pas). Plus fiable qu'un simple comptage : si un numéro a été renommé ou supprimé, le
+ * prochain numéro ne retombe pas sur un numéro existant.
+ */
+export function sequenceMaxBonCommande(numeros: string[], prefixe: string): number {
+  let max = 0;
+  for (const numero of numeros) {
+    if (!numero.startsWith(prefixe)) continue;
+    const suite = numero.slice(prefixe.length);
+    if (/^\d+$/.test(suite)) max = Math.max(max, Number(suite));
+  }
+  return max;
+}
+
+/**
  * Prix unitaire de facture = prix unitaire du bon de commande majoré de `pourcentage` %, arrondi
  * au centime (ex. 100 € avec +20 % → 120 €).
  */

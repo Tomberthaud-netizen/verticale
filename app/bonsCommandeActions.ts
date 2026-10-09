@@ -228,6 +228,37 @@ export async function modifierDateBonCommande(bonCommandeId: string, date: strin
   if (bon.devisId) revalidatePath(`/devis/${bon.devisId}`);
 }
 
+/**
+ * Change le numéro d'un bon de commande (affiché sur le PDF et dans l'objet de l'e-mail).
+ * Réservé à l'administrateur principal ; le numéro doit rester unique.
+ */
+export async function modifierNumeroBonCommande(bonCommandeId: string, numero: string) {
+  const bon = await prisma.bonCommande.findUnique({
+    where: { id: bonCommandeId },
+    select: { entreprise: true, devisId: true, numero: true },
+  });
+  if (!bon) throw new Error("Bon de commande introuvable.");
+  const personne = await exigerAccesBonsCommande(bon.entreprise as Entreprise);
+  // Revérifié côté serveur : le masquage du bouton côté client ne suffit pas.
+  if (!personne.estAdminPrincipal) {
+    throw new Error("Seul l'administrateur principal peut modifier le numéro d'un bon de commande.");
+  }
+  const nouveauNumero = numero.trim();
+  if (!nouveauNumero) throw new Error("Le numéro du bon de commande ne peut pas être vide.");
+  if (nouveauNumero === bon.numero) return;
+
+  try {
+    await prisma.bonCommande.update({ where: { id: bonCommandeId }, data: { numero: nouveauNumero } });
+  } catch (err) {
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+      throw new Error("Ce numéro est déjà utilisé par un autre bon de commande.");
+    }
+    throw err;
+  }
+  revalidatePath("/bons-commande");
+  if (bon.devisId) revalidatePath(`/devis/${bon.devisId}`);
+}
+
 export async function supprimerBonCommande(bonCommandeId: string) {
   const bon = await prisma.bonCommande.findUnique({
     where: { id: bonCommandeId },

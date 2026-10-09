@@ -564,3 +564,40 @@ export function getBonsCommande(entreprise: Entreprise) {
     orderBy: { createdAt: "desc" },
   });
 }
+
+/** Projets de chiffrage, du plus récemment modifié au plus ancien (avec de quoi afficher le total). */
+export function getProjetsChiffrage() {
+  return prisma.projetChiffrage.findMany({
+    include: {
+      lignes: { select: { quantite: true, prixUnitaire: true } },
+      chantier: { select: { id: true, nom: true } },
+      _count: { select: { pieces: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
+/** Un projet de chiffrage complet (le contenu binaire du plan n'est jamais chargé ici). */
+export function getProjetChiffrage(id: string) {
+  return prisma.projetChiffrage.findUnique({
+    where: { id },
+    include: {
+      plan: { select: { id: true, nomFichier: true, typeMime: true, echellePxParM: true } },
+      chantier: { select: { id: true, nom: true, entreprise: true, adresse: true } },
+      pieces: { orderBy: { ordre: "asc" } },
+      lignes: { orderBy: { ordre: "asc" } },
+    },
+  });
+}
+
+export function getPostesBareme() {
+  return prisma.posteBareme.findMany({ orderBy: { ordre: "asc" } });
+}
+
+/** Tous les chantiers (id, nom, entreprise, adresse), pour rattacher un chiffrage à un chantier existant. */
+export function getChantiersPourChiffrage() {
+  return prisma.chantier.findMany({
+    select: { id: true, nom: true, entreprise: true, adresse: true },
+    orderBy: { nom: "asc" },
+  });
+}

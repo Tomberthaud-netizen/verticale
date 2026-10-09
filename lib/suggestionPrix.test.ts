@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   filtrerDesignations,
   fusionnerDesignations,
+  memeUnite,
+  normaliserUnite,
   trouverMeilleureLigne,
   trouverMeilleureReference,
   type LigneHistorique,
@@ -111,5 +113,22 @@ describe("fusionnerDesignations", () => {
       "Peinture murs",
       "Chape",
     ]);
+  });
+});
+
+describe("normaliserUnite / memeUnite", () => {
+  it("rapproche les écritures d une même unité", () => {
+    expect(normaliserUnite("M2")).toBe("m²");
+    expect(normaliserUnite(" m² ")).toBe("m²");
+    expect(normaliserUnite("FF")).toBe("ens");
+    expect(normaliserUnite("Forfait")).toBe("ens");
+    expect(normaliserUnite(null)).toBe("");
+  });
+
+  it("compare deux unités", () => {
+    expect(memeUnite("m2", "M²")).toBe(true);
+    expect(memeUnite("ML", "m²")).toBe(false);
+    expect(memeUnite(null, "M²")).toBe(false);
+    expect(memeUnite(null, null)).toBe(false);
   });
 });

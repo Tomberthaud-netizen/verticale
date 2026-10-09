@@ -36,6 +36,7 @@ enum AccesOnglet {
   CATALOGUE
   SOUS_TRAITANTS
   CHANTIERS
+  CHIFFRAGE
 }
 
 enum StatutFacture {
@@ -129,6 +130,7 @@ model Chantier {
   paiementsSousTraitant PaiementSousTraitant[]
   bonsCommande          BonCommande[]
   sousTraitant          SousTraitant?             @relation(fields: [sousTraitantId], references: [id], onDelete: SetNull)
+  projetsChiffrage      ProjetChiffrage[]
 
   @@index([sousTraitantId])
 }
@@ -702,4 +704,96 @@ model LigneBonCommande {
   bonCommande BonCommande @relation(fields: [bonCommandeId], references: [id], onDelete: Cascade)
 
   @@index([bonCommandeId])
+}
+
+/// Base de calcul d'un poste du barème de chiffrage : de quelle mesure d'une pièce dépend sa quantité.
+enum BaseCalculChiffrage {
+  SURFACE_SOL
+  SURFACE_MURS
+  SURFACE_PLAFOND
+  PERIMETRE
+  FORFAIT_PIECE
+}
+
+/// Projet de chiffrage (onglet Gestion › Chiffrage) : pièces saisies ou tracées sur un plan,
+/// d'où le site déduit un chiffrage détaillé grâce au barème. Commun à VERTICALE et CB2B.
+model ProjetChiffrage {
+  id         String   @id @default(cuid())
+  nom        String
+  adresse    String?
+  notes      String?  @db.Text
+  /// Chantier déjà créé auquel ce chiffrage est rattaché (facultatif).
+  chantierId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  chantier Chantier? @relation(fields: [chantierId], references: [id], onDelete: SetNull)
+
+  plan   PlanChiffrage?
+  pieces PieceChiffrage[]
+  lignes LigneChiffrage[]
+
+  @@index([chantierId])
+}
+
+/// Plan joint à un projet (image ou PDF). L'échelle sert à tracer le contour des pièces.
+model PlanChiffrage {
+  id            String   @id @default(cuid())
+  projetId      String   @unique
+  nomFichier    String
+  typeMime      String
+  donnees       Bytes    @db.LongBlob
+  /// Pixels (de l'image d'origine) par mètre réel, une fois l'échelle étalonnée.
+  echellePxParM Float?
+  dateAjout     DateTime @default(now())
+
+  projet ProjetChiffrage @relation(fields: [projetId], references: [id], onDelete: Cascade)
+}
+
+model PieceChiffrage {
+  id         String  @id @default(cuid())
+  projetId   String
+  nom        String
+  /// Clé de constants (SALON, CUISINE, SALLE_DE_BAIN…) : détermine les postes du barème appliqués.
+  typePiece  String
+  surfaceM2  Float
+  perimetreM Float
+  hauteurM   Float   @default(2.5)
+  /// Points du contour tracé sur le plan (JSON [[x, y], …] en pixels de l'image), le cas échéant.
+  contour    String? @db.Text
+  ordre      Int
+
+  projet ProjetChiffrage @relation(fields: [projetId], references: [id], onDelete: Cascade)
+
+  @@index([projetId])
+}
+
+model LigneChiffrage {
+  id           String  @id @default(cuid())
+  projetId     String
+  lot          String
+  designation  String
+  detail       String? @db.Text
+  unite        String?
+  quantite     Float
+  prixUnitaire Float
+  ordre        Int
+
+  projet ProjetChiffrage @relation(fields: [projetId], references: [id], onDelete: Cascade)
+
+  @@index([projetId])
+}
+
+/// Poste du barème de chiffrage, saisi par l'utilisateur (le catalogue sert à suggérer le prix).
+model PosteBareme {
+  id           String              @id @default(cuid())
+  lot          String
+  designation  String
+  unite        String
+  base         BaseCalculChiffrage
+  prixUnitaire Float
+  /// Types de pièces concernés, séparés par des virgules ; vide = toutes les pièces.
+  typesPieces  String              @default("")
+  actif        Boolean             @default(true)
+  ordre        Int
 }

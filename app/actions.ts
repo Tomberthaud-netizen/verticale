@@ -8,8 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { SEUILS_ALERTE_DEFAUT, type PhaseType } from "@/lib/dates";
 import type { Entreprise } from "@/constants/entreprises";
 import { calculerTotalHT, genererNumeroDevis, prefixeEntreprise } from "@/lib/devis";
-import { actualiserPrix, trouverIndicePourDate } from "@/lib/indiceBT";
-import { trouverMeilleureLigne, trouverMeilleureReference } from "@/lib/suggestionPrix";
+import { chercherSuggestionPrix, type SuggestionPrixResult } from "@/lib/suggestionPrixServeur";
 import { genererPdfDevisBuffer } from "@/lib/pdfDevis";
 import { determinerCheminBureau, determinerDossierEntreprise, determinerSousDossierDevis, nettoyerNomDossier } from "@/lib/exportDevis";
 import { requireAcces } from "@/lib/authContext";
@@ -840,75 +839,15 @@ export async function reediterDevis(devisId: string) {
   return { id: nouveau.id };
 }
 
-export interface SuggestionPrixResult {
-  prixSource: number;
-  dateSourceISO: string | null;
-  origine: "DEVIS" | "CATALOGUE";
-  sourceLabel: string;
-  confiance: "HAUTE" | "MOYENNE" | "BASSE" | null;
-  prixActualise: number | null;
-}
+export type { SuggestionPrixResult } from "@/lib/suggestionPrixServeur";
 
 /**
- * Propose un prix unitaire pour une désignation saisie. Priorité à l'historique réel des
- * devis Verticale (ligne la plus récente avec une désignation identique ou proche) ; à
- * défaut, repli sur le catalogue de prix extrait des devis de sous-traitants historiques.
- * Le prix retenu est actualisé à la date cible via l'indice BT01.
+ * Propose un prix unitaire pour une désignation saisie (historique des devis, puis catalogue),
+ * actualisé à la date cible via l'indice BT01.
  */
-export async function suggererPrix(
-  designation: string,
-  dateCible: string
-): Promise<SuggestionPrixResult | null> {
+export async function suggererPrix(designation: string, dateCible: string): Promise<SuggestionPrixResult | null> {
   await requireAcces("DEVIS");
-  if (!designation.trim() || !dateCible) return null;
-
-  const indices = await prisma.indiceBT.findMany();
-  const indiceCible = trouverIndicePourDate(indices, new Date(dateCible));
-
-  const lignesBrutes = await prisma.ligneDevis.findMany({
-    select: {
-      designation: true,
-      prixUnitaire: true,
-      devis: { select: { dateDevis: true, numero: true, intitule: true } },
-    },
-  });
-  const lignes = lignesBrutes.map((l) => ({
-    designation: l.designation,
-    prixUnitaire: l.prixUnitaire,
-    dateDevis: l.devis.dateDevis,
-    devisNumero: l.devis.numero,
-    devisIntitule: l.devis.intitule,
-  }));
-  const meilleureLigne = trouverMeilleureLigne(lignes, designation);
-  if (meilleureLigne) {
-    const indiceSource = trouverIndicePourDate(indices, meilleureLigne.dateDevis);
-    return {
-      prixSource: meilleureLigne.prixUnitaire,
-      dateSourceISO: meilleureLigne.dateDevis.toISOString(),
-      origine: "DEVIS",
-      sourceLabel: `${meilleureLigne.devisNumero} — ${meilleureLigne.devisIntitule}`,
-      confiance: null,
-      prixActualise: actualiserPrix(meilleureLigne.prixUnitaire, indiceSource, indiceCible),
-    };
-  }
-
-  const referencesBrutes = await prisma.prixReference.findMany({
-    select: { designation: true, prixUnitaire: true, dateReference: true, lot: true, confiance: true },
-  });
-  const meilleureReference = trouverMeilleureReference(referencesBrutes, designation);
-  if (!meilleureReference) return null;
-
-  const indiceSource = meilleureReference.dateReference
-    ? trouverIndicePourDate(indices, meilleureReference.dateReference)
-    : null;
-  return {
-    prixSource: meilleureReference.prixUnitaire,
-    dateSourceISO: meilleureReference.dateReference?.toISOString() ?? null,
-    origine: "CATALOGUE",
-    sourceLabel: meilleureReference.lot ? `Catalogue — ${meilleureReference.lot}` : "Catalogue",
-    confiance: meilleureReference.confiance,
-    prixActualise: actualiserPrix(meilleureReference.prixUnitaire, indiceSource, indiceCible),
-  };
+  return chercherSuggestionPrix(designation, dateCible);
 }
 
 const FORMAT_PERIODE = /^\d{4}-(0[1-9]|1[0-2])$/;

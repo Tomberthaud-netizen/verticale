@@ -1,6 +1,24 @@
+/**
+ * Forme canonique d'une unité (m2 → m², ff/forfait → ens, insensible à la casse et aux points)
+ * pour comparer l'unité d'un poste à celle d'une ligne de devis ou du catalogue.
+ */
+export function normaliserUnite(unite: string | null | undefined): string {
+  const u = (unite ?? "").trim().toLowerCase().replace(/\./g, "");
+  if (u === "m2" || u === "m²") return "m²";
+  if (u === "ff" || u === "forfait" || u === "ens" || u === "ensemble") return "ens";
+  return u;
+}
+
+export function memeUnite(a: string | null | undefined, b: string | null | undefined): boolean {
+  const ua = normaliserUnite(a);
+  return ua !== "" && ua === normaliserUnite(b);
+}
+
 export interface LigneHistorique {
   designation: string;
   prixUnitaire: number;
+  /** Unité de la ligne de devis, quand elle est connue. */
+  unite?: string | null;
   dateDevis: Date;
   devisNumero: string;
   devisIntitule: string;
@@ -70,6 +88,8 @@ export type NiveauConfiance = "HAUTE" | "MOYENNE" | "BASSE";
 export interface ReferenceCatalogue {
   designation: string;
   prixUnitaire: number;
+  /** Unité de la référence du catalogue, quand elle est connue. */
+  unite?: string | null;
   dateReference: Date | null;
   lot: string | null;
   confiance: NiveauConfiance;

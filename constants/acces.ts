@@ -10,6 +10,7 @@ export const ACCES_ONGLETS: AccesOnglet[] = [
   "FINANCE",
   "DIRECTION",
   "CATALOGUE",
+  "CHIFFRAGE",
   "ADMINISTRATION",
 ];
 
@@ -23,6 +24,7 @@ export const ACCES_LABELS: Record<AccesOnglet, string> = {
   FINANCE: "Finance",
   DIRECTION: "Direction",
   CATALOGUE: "Catalogue",
+  CHIFFRAGE: "Chiffrage",
   ADMINISTRATION: "Administration",
 };
 
@@ -38,6 +40,7 @@ export const ONGLETS_SANS_ENTREPRISE: AccesOnglet[] = [
   "CATALOGUE",
   "FOURNISSEURS",
   "SOUS_TRAITANTS",
+  "CHIFFRAGE",
 ];
 
 /** Sous-onglets de la fiche chantier (onglet CHANTIERS), pour un accès plus fin par personne. */
